@@ -1,24 +1,27 @@
 using DataAccess.DataAccess;
 using DataAccess.Implementation;
 using DataAccess.Interfaces;
-using MeetUp.TrustLocker.DataAccess;
 using WebApplication1.Implementation;
 using WebApplication1.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// 🔽 Додай це!
+builder.Services.AddControllers(); 
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserService, UserService> ();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IDbAccessService, DbAccessService>();
 
 
 
 
+
 var app = builder.Build();
+// SEED DATA
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -28,6 +31,7 @@ using (var scope = app.Services.CreateScope())
 
     await seeder.Seed();
 }
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -36,7 +40,5 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.MapControllers();
 app.Run();
-
-

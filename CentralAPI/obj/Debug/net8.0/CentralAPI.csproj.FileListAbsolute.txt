@@ -80,3 +80,4 @@ C:\Users\solok\RiderProjects\Solution1\CentralAPI\obj\Debug\net8.0\refint\Centra
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\obj\Debug\net8.0\CentralAPI.pdb
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\obj\Debug\net8.0\CentralAPI.genruntimeconfig.cache
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\obj\Debug\net8.0\ref\CentralAPI.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\obj\Debug\net8.0\CentralAPI.sourcelink.json

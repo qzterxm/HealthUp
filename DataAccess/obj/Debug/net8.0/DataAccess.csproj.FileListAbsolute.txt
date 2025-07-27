@@ -13,3 +13,4 @@ C:\Users\solok\RiderProjects\Solution1\DataAccess\obj\Debug\net8.0\DataAccess.dl
 C:\Users\solok\RiderProjects\Solution1\DataAccess\obj\Debug\net8.0\refint\DataAccess.dll
 C:\Users\solok\RiderProjects\Solution1\DataAccess\obj\Debug\net8.0\DataAccess.pdb
 C:\Users\solok\RiderProjects\Solution1\DataAccess\obj\Debug\net8.0\ref\DataAccess.dll
+C:\Users\solok\RiderProjects\Solution1\DataAccess\obj\Debug\net8.0\DataAccess.sourcelink.json

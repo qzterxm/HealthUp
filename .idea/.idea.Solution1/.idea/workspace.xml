@@ -14,7 +14,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c213aec1-2be2-46f9-afc5-253c8393eff1" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/CentralAPI/appsettings.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.Solution1/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CentralAPI/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/CentralAPI/Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,6 +28,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "qzterxm"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/qzterxm/HealthUp",
+    "accountId": "3f4b226a-0365-4564-b5aa-9a4e181fddf6"
+  }
+}]]></component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/API/Program.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/BlazorApp1/Program.cs" root0="SKIP_HIGHLIGHTING" />
@@ -36,6 +49,7 @@
     <setting file="file://$PROJECT_DIR$/CentralAPI/Interfaces/IUserService.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/CentralAPI/appsettings.json" root0="FORCE_HIGHLIGHTING" />
   </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
 }</component>
@@ -178,13 +192,31 @@
       <updated>1753462961675</updated>
       <workItem from="1753462963097" duration="5660000" />
       <workItem from="1753551089345" duration="1352000" />
-      <workItem from="1753553223380" duration="7336000" />
+      <workItem from="1753553223380" duration="7750000" />
     </task>
+    <task id="LOCAL-00001" summary="/">
+      <option name="closed" value="true" />
+      <created>1753562002446</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1753562002446</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Added UserController &amp; related files">
+      <option name="closed" value="true" />
+      <created>1753562299061</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1753562299061</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -199,5 +231,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+    <MESSAGE value="/" />
+    <MESSAGE value="Added UserController &amp; related files" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added UserController &amp; related files" />
   </component>
 </project>

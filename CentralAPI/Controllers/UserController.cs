@@ -19,7 +19,7 @@ public class UserController: ControllerBase
     }
     [HttpPost("CreateUser")]
     [AllowAnonymous]
-    public async Task<bool> CreateUser(User user)
+    public async Task<bool> CreateUser([FromBody] User user)
     {
         bool result = await _userService.CreateUser(user);
         return result;

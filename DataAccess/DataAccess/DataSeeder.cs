@@ -1,10 +1,9 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using DataAccess.DataAccess;
 using DataAccess.Enums;
 using WebApplication1.Enums;
 
-namespace MeetUp.TrustLocker.DataAccess
+namespace DataAccess.DataAccess
 {
     public class DataSeeder(IDbAccessService dbAccessServices)
     {
@@ -30,6 +29,10 @@ namespace MeetUp.TrustLocker.DataAccess
             {
                 admin.Password = HashPassword(admin.Password);
                 var addResult = await dbAccessServices.AddRecord(StoredProceduresNames.CreateUser, admin);
+                if (addResult <= 0)
+                {
+                    throw new Exception("Failed to insert admin user into database.");
+                }
             }
         }
 

@@ -21,11 +21,20 @@ public class UserService :IUserService
     }
 
     public async Task<bool> CreateUser(User user)
-    { 
-        if (user is null) return false;
+    {
+        try
+        {
+            if (user is null) return false;
             if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.UserName) || string.IsNullOrEmpty(user.Password))
                 return false;
             return await _userRepository.CreateUser(user);
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return false;
+        }
+       
     }
 
     public Task<User?> GetUserByEmail(string email)
