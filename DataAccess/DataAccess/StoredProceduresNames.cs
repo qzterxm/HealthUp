@@ -9,7 +9,6 @@
         public const string UpdateUser = "sp_Users_UpdateUser";
         public const string DeleteUser = "sp_Users_DeleteUser";
         public const string GetUserByEmail = "sp_Users_GetUserByEmail";
-        public const string GetFilteredUsers = "sp_Users_GetFilteredUsers";
         #endregion
 
         

@@ -5,43 +5,72 @@ using WebApplication1.Interfaces;
 
 namespace WebApplication1.Implementation;
 
-public class UserService :IUserService
+public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
-    private readonly IUserService _userService;
+    private readonly ILogger <UserService> _logger;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, ILogger <UserService> logger)
     {
         _userRepository = userRepository;
+        _logger = logger;
     }
 
-    public Task<User?> GetById(Guid id)
+    public async Task<User?> GetById(Guid id)
     {
-        throw new NotImplementedException();
+        return await _userRepository.GetById(id);
     }
-
     public async Task<bool> CreateUser(User user)
     {
         try
-        {
-            if (user is null) return false;
-            if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.UserName) || string.IsNullOrEmpty(user.Password))
-                return false;
-            return await _userRepository.CreateUser(user);
-        }
-        catch(Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            return false;
-        }
-       
-    }
+            {
+                if (user is null)
+                {
+                    _logger.LogWarning("[CreateUser] User is null");
+                    return false;
+                }
 
+                if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.UserName) ||
+                    string.IsNullOrEmpty(user.Password))
+                {
+                    _logger.LogWarning("[CreateUser] Invalid user data: Email={Email}, UserName={UserName}", user.Email,
+                        user.UserName);
+                    return false;
+                }
+
+                var result = await _userRepository.CreateUser(user);
+
+                if (!result)
+                {
+                    _logger.LogWarning("[CreateUser] Failed to create user with Email: {Email}", user.Email);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CreateUser] Exception during user creation: {Email}", user.Email);
+                return false;
+            }
+    }
     public Task<User?> GetUserByEmail(string email)
     {
-        return _userService.GetUserByEmail(email);
+        return _userRepository.GetUserByEmail(email);
     }
+    public async Task<bool> UpdateUser(Guid id, User user)
+    {
+        if (user is null || id == Guid.Empty) return false;
+            
+        var existingUser = await _userRepository.GetById(id);
+        if (existingUser == null) return false;
+            
 
+        existingUser.Email = user.Email;
+        existingUser.UserName = user.UserName;
+        existingUser.UserRole = user.UserRole;
+
+        return await _userRepository.UpdateUser(id, existingUser);
+    }
     public async Task<bool> ChangeUserRole(Guid id, UserRoles newRole)
     {
         var user = await _userRepository.GetById(id);
@@ -57,22 +86,12 @@ public class UserService :IUserService
 
         return true; 
     }
-
-
-    public async Task<bool> UpdateUser(Guid id, User user)
+    public Task<List<User>> GetAllUsers()
+         {
+             return  _userRepository.GetAllUsers();
+         }
+    public Task<bool> DeleteUser(Guid id)
     {
-        if (user is null || id == Guid.Empty) return false;
-            
-        var existingUser = await _userRepository.GetById(id);
-        if (existingUser == null) return false;
-            
-
-        existingUser.Email = user.Email;
-        existingUser.UserName = user.UserName;
-        existingUser.UserRole = user.UserRole;
-
-        return await _userRepository.UpdateUser(id, existingUser);
+        return _userRepository.DeleteUser(id);
     }
-
- 
 }

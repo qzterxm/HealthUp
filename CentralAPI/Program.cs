@@ -1,6 +1,7 @@
 using DataAccess.DataAccess;
 using DataAccess.Implementation;
 using DataAccess.Interfaces;
+using Serilog;
 using WebApplication1.Implementation;
 using WebApplication1.Interfaces;
 
@@ -9,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// 🔽 Додай це!
+
 builder.Services.AddControllers(); 
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -18,6 +19,16 @@ builder.Services.AddScoped<IDbAccessService, DbAccessService>();
 
 
 
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .WriteTo.Console()
+    .CreateLogger();
+
+builder.Host.UseSerilog((context, configuration) =>
+{
+    configuration.ReadFrom.Configuration(context.Configuration);
+});
 
 
 var app = builder.Build();
