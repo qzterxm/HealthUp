@@ -22,36 +22,15 @@ public class UserService : IUserService
     }
     public async Task<bool> CreateUser(User user)
     {
-        try
-            {
-                if (user is null)
-                {
-                    _logger.LogWarning("[CreateUser] User is null");
-                    return false;
-                }
+        if (string.IsNullOrWhiteSpace(user.Email) || string.IsNullOrWhiteSpace(user.UserName))
+            return false;
 
-                if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.UserName) ||
-                    string.IsNullOrEmpty(user.Password))
-                {
-                    _logger.LogWarning("[CreateUser] Invalid user data: Email={Email}, UserName={UserName}", user.Email,
-                        user.UserName);
-                    return false;
-                }
+        var existingUser = await _userRepository.GetUserByEmail(user.Email);
+        if (existingUser != null)
+            return false;
 
-                var result = await _userRepository.CreateUser(user);
-
-                if (!result)
-                {
-                    _logger.LogWarning("[CreateUser] Failed to create user with Email: {Email}", user.Email);
-                }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[CreateUser] Exception during user creation: {Email}", user.Email);
-                return false;
-            }
+        user.Id = Guid.NewGuid();
+        return await _userRepository.CreateUser(user);
     }
     public Task<User?> GetUserByEmail(string email)
     {

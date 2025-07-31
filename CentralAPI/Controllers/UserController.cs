@@ -23,7 +23,9 @@ public class UserController: ControllerBase
     public async Task<IActionResult> CreateUser([FromBody] User user)
     {
         bool result = await _userService.CreateUser(user);
-        return result ? Ok(true) : BadRequest(false);
+        return result 
+            ? Ok($"User has been created successfully")
+            : BadRequest($"User hasn't been created or already exists");
     }
     
     [HttpGet("GetById")]
@@ -69,7 +71,9 @@ public class UserController: ControllerBase
 
         var result = await _userService.UpdateUser(user.Id, userDto.Adapt<User>());
 
-        return Ok(result);
+        return result
+            ? Ok($"User has been promoted to Admin.")
+            : NotFound($"User not found or role change failed or smth went wrong.");
     }
 
     [HttpDelete("DeleteUser")]

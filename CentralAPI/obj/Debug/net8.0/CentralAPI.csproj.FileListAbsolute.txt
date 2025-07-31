@@ -107,3 +107,10 @@ C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\System.IO.Pip
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\System.Text.Encodings.Web.dll
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\System.Text.Json.dll
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\JWT.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Newtonsoft.Json.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Scrutor.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Annotations.dll
