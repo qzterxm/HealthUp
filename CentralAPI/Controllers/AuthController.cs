@@ -14,17 +14,12 @@ namespace WebApplication1.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
-
     private readonly IPasswordHelperService _passwordHelper;
     private readonly IJwtService _jwtHelper;
 
-    public AuthController(
-        IAuthService authService,
-         IPasswordHelperService passwordHelper,
-        IJwtService jwtHelper)
-    {
-        _authService = authService;
-          _passwordHelper = passwordHelper;
+    public AuthController(IAuthService authService, IPasswordHelperService passwordHelper, IJwtService jwtHelper)
+    {   _authService = authService; 
+        _passwordHelper = passwordHelper;
         _jwtHelper = jwtHelper;
     }
 
@@ -56,11 +51,10 @@ public class AuthController : ControllerBase
         var result = await _authService.Register(user);
         if (!result)
             return BadRequest("Registration failed");
-
-
+        
         return Ok(new
         {
-            Message = "Registration successful.",
+            Message = "Registration successful.{}",
             Success = true
         });
     }
