@@ -13,7 +13,7 @@ using Microsoft.IdentityModel.Logging;
 using WebApplication1.Implementation;
 using WebApplication1.Interfaces;
 
-// Десь на старті (перед викликом AddAuthentication)
+
 IdentityModelEventSource.ShowPII = true;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,7 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(opts =>
 {
-    // Додаємо конвертер, який дозволяє серіалізувати/десеріалізувати enum як рядок
+    // конвертер, який дозволяє серіалізувати/десеріалізувати enum як рядок
     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     opts.JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
 }); 
@@ -84,7 +84,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = context =>
             {
-                // Дозволити token з query string для SignalR
+               
                 var accessToken = context.Request.Query["access_token"];
                 if (!string.IsNullOrEmpty(accessToken))
                     context.Token = accessToken;
@@ -93,7 +93,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
         options.Events.OnAuthenticationFailed = ctx =>
         {
-            // наприклад, вивести в лог текст помилки
+          
             Console.Error.WriteLine($"{ctx.Exception}, JWT auth failed");
             return Task.CompletedTask;
         };

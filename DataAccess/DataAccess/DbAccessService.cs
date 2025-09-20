@@ -14,22 +14,7 @@ namespace DataAccess.DataAccess
         Task<int> DeleteRecordById(string procedureName, Guid id);
         Task<TResult?> GetRecordById<TResult>(string procedureName, Guid id);
         Task<TResult?> GetOneByParameter<TResult>(string procedureName, string parameterName, object value);
-        Task<List<TResult>> GetAllByParameter<TResult>(string procedureName, string parameterName, object value);
-        Task<List<TResult>> GetRecordsByParameters<TResult>(string procedureName, DynamicParameters parameters);
-        Task<List<TResult>> GetRecordsAsync<T1, T2, T3, T4, TResult>(
-            string procedureName,
-            Func<T1, T2, T3, T4, TResult> map,
-            string splitOn);
-        Task<TResult?> GetRecordByIdAsync<T1, T2, T3, T4, TResult>(
-            string procedureName,
-            Func<T1, T2, T3, T4, TResult> map,
-            Guid id,
-            string splitOn);
-        Task<List<TResult>> GetRecordsByParametersAsync<T1, T2, T3, T4, TResult>(
-            string procedureName,
-            Func<T1, T2, T3, T4, TResult> map,
-            DynamicParameters parameters,
-            string splitOn);
+       
     }
 
     public class DbAccessService : IDbAccessService

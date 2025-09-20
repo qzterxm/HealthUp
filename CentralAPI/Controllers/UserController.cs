@@ -72,8 +72,8 @@ public class UserController: ControllerBase
         var result = await _userService.UpdateUser(user.Id, userDto.Adapt<User>());
 
         return result
-            ? Ok($"User has been promoted to Admin.")
-            : NotFound($"User not found or role change failed or smth went wrong.");
+            ? Ok($"User's information has been updated successfully")
+            : NotFound($"User not found smth went wrong.");
     }
 
     [HttpDelete("DeleteUser")]
