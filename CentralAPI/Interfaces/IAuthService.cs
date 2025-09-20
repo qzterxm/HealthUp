@@ -9,4 +9,5 @@ public interface IAuthService
     Task<TokenDTO> RefreshAccessToken(User user);
     Task<User?> GetUserByEmail(string email);
     Task<User> GetUserById(Guid id);
+   
 }

@@ -1,0 +1,61 @@
+﻿
+@page "/auth"
+@rendermode InteractiveServer
+@*@inject IStringLocalizer<Presentation.Locales.AuthorizationPage.AuthPageResources> localizer*@
+
+<div class="signin-page">
+
+    <div class="left-panel">
+        @* <h2>@localizer["WelcometoTrustLocker"]</h2>*@
+        <h2>Welcome to HealthUp</h2>
+    </div>
+
+    @* <div class="language-selector__absolute-right-top"> *@
+    @*     <CultureSelector/> *@
+    @* </div> *@
+    @if (_currentMode == AuthMode.SignIn)
+    {
+        <SignIn @key="AuthMode.SignIn" OnSignUpClick="ShowSignUp" OnForgotPasswordClick="ShowForgotPassword"/>
+    }
+    else if (_currentMode == AuthMode.SignUp)
+    {
+        <SignUp @key="AuthMode.SignUp" OnSignInClick="ShowSignIn"/>
+    }
+    else if (_currentMode == AuthMode.ForgotPassword)
+    {
+        <ForgotPassword @key="AuthMode.ForgotPassword" OnSignInClick="ShowSignIn"/>
+    }
+
+</div>
+
+@code {
+    [Inject] CustomAuthStateProvider AuthStateProvider { get; set; } = default!;
+    
+
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+
+    //[CascadingParameter] ScreenSize ScreenSize { get; set; }
+
+    private AuthMode _currentMode = AuthMode.SignIn;
+
+    void ShowSignIn() => _currentMode = AuthMode.SignIn;
+    void ShowSignUp() => _currentMode = AuthMode.SignUp;
+    void ShowForgotPassword() => _currentMode = AuthMode.ForgotPassword;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity != null && authState.User.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/");
+            StateHasChanged();
+        }
+        await base.OnInitializedAsync();
+    }
+    enum AuthMode
+    {
+        SignIn,
+        SignUp,
+        ForgotPassword
+    }
+}

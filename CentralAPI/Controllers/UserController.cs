@@ -33,7 +33,7 @@ public class UserController: ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var user = await _userService.GetById(id);
-        return user == null ? NotFound($"User with ID {id} not found or smth went wrong.") : Ok(user.Adapt<UserDTO>());
+        return user == null ? NotFound($"User with ID {id} not found or smth went wrong.") : Ok(user.Adapt<User>());
         
     }
 
@@ -42,7 +42,7 @@ public class UserController: ControllerBase
     public async Task<IActionResult> GetUserByEmail(string email)
     {
         var user = await _userService.GetUserByEmail(email);
-        return user == null ? NotFound("User not found.") : Ok(user.Adapt<UserDTO>());
+        return user == null ? NotFound("User not found.") : Ok(user.Adapt<User>());
     }
 
     [HttpGet("ChangeUserRole")]
@@ -61,12 +61,12 @@ public class UserController: ControllerBase
     }
     [AllowAnonymous]
     [HttpPut("UpdateUser")]
-    public async Task<IActionResult> UpdateUser(UserDTO userDto)
+    public async Task<IActionResult> UpdateUser(User userDto)
     {
         var user = await _userService.GetById(userDto.Id);
         if(user == null)
         {
-            return NotFound($"User with ID {userDto.Id} not found.");
+            return NotFound($"User with ID {user.Id} not found.");
         }
 
         var result = await _userService.UpdateUser(user.Id, userDto.Adapt<User>());
