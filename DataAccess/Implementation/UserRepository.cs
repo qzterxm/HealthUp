@@ -74,6 +74,7 @@ public class UserRepository : IUserRepository
         {
             var userAddResult =
                 await _dbAccessService.GetOneByParameter<User>(StoredProceduresNames.GetUserByEmail, "Email", email);
+            
             return userAddResult;
         }
         catch (Exception ex)
@@ -146,5 +147,25 @@ public class UserRepository : IUserRepository
              return false;   
             }
         }
+
+    public async Task AddMeasurement(HealthMeasurementDTO measurementDto)
+    {
+        await _dbAccessService.AddHealthMeasurement(measurementDto);
+    }
+
+    public async Task<List<HealthMeasurementDTO>> GetMeasurements(Guid userId)
+    {
+        return await _dbAccessService.GetHealthMeasurements(userId);
+    }
+
+    public async Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto)
+    {
+        return await _dbAccessService.AddAnthrometry(anthropometrydto);
+    }
+
+    public async Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId)
+    {
+        return await _dbAccessService.GetAnthropometries(userId);
+    }
 }
 

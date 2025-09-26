@@ -1317,7 +1317,8 @@
           "Swashbuckle.AspNetCore": "6.5.0",
           "Swashbuckle.AspNetCore.Annotations": "6.5.0",
           "Swashbuckle.AspNetCore.Filters": "8.0.0",
-          "System.IdentityModel.Tokens.Jwt": "8.13.0"
+          "System.IdentityModel.Tokens.Jwt": "8.13.0",
+          "System.Text.Json": "9.0.0"
         },
         "compile": {
           "bin/placeholder/DataAccess.dll": {}

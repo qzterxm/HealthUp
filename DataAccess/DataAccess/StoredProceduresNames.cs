@@ -11,6 +11,11 @@
         public const string GetUserByEmail = "sp_Users_GetUserByEmail";
         #endregion
 
+        #region Health
+        public const string AddHealthMeasurement = "sp_Health_AddMeasurement";
+        public const string GetMeasurements = "sp_Health_GetMeasurements";
+        public const string GetAnthropometries = "sp_Health_GetAnthropometries";
+        #endregion
         
     }
 

@@ -56,8 +56,7 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "JWT Authorization header using the Bearer scheme."
     });
-
-    // Make sure you have this OperationFilter class implemented
+    
     options.OperationFilter<AuthResponsesOperationFilter>();
 
     // This ensures the OpenAPI specification version is included in the document
@@ -100,8 +99,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 
-
-
 // Register services
 builder.Services.AddScoped<IDbAccessService, DbAccessService>();
 
@@ -109,6 +106,7 @@ builder.Services.AddScoped<IDbAccessService, DbAccessService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICalculationService, CalculationService>();
 //helpers
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHelperService, PasswordHelperService>();

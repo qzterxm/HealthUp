@@ -13,5 +13,8 @@ public interface IUserRepository
     Task<bool> UpdateUser(Guid id, User entity);
     Task<List<User>> GetAllUsers();
     Task<bool> DeleteUser(Guid id);
-
+    Task AddMeasurement(HealthMeasurementDTO measurementDto);
+    Task<List<HealthMeasurementDTO>> GetMeasurements(Guid userId);
+    Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto);
+    Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId);
 }

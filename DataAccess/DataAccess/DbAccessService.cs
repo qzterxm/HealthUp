@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using Dapper;
+using DataAccess.Enums;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
@@ -14,7 +15,12 @@ namespace DataAccess.DataAccess
         Task<int> DeleteRecordById(string procedureName, Guid id);
         Task<TResult?> GetRecordById<TResult>(string procedureName, Guid id);
         Task<TResult?> GetOneByParameter<TResult>(string procedureName, string parameterName, object value);
+        
+        Task<int> AddHealthMeasurement(HealthMeasurementDTO measurementDto);
+        Task<List<HealthMeasurementDTO>> GetHealthMeasurements(Guid userId);
+        Task <int>  AddAnthrometry(AnthropometryDTO anthropometrydto);
        
+        Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId);
     }
 
     public class DbAccessService : IDbAccessService
@@ -205,6 +211,84 @@ namespace DataAccess.DataAccess
                 throw new InvalidOperationException($"Error retrieving records using procedure '{procedureName}' with parameters: {e.Message}");
             }
         }
+        public async Task<int> AddHealthMeasurement(HealthMeasurementDTO measurementDto)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                return await connection.ExecuteAsync(
+                    StoredProceduresNames.AddHealthMeasurement,
+                    measurementDto,
+                    commandType: CommandType.StoredProcedure
+                );
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error adding health measurement: {e.Message}");
+            }
+        }
 
-    }
+        public async Task<List<HealthMeasurementDTO>> GetHealthMeasurements(Guid userId)
+        {
+           
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", userId);
+
+                var result = await connection.QueryAsync<HealthMeasurementDTO>(
+                    StoredProceduresNames.GetMeasurements,
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result.ToList();
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error retrieving measurements for user {userId}: {e.Message}");
+            }
+        }
+
+        public async Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto)
+        {
+                await using var connection = new SqlConnection(GetConnectionString());
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", anthropometrydto.UserId);
+                parameters.Add("@MeasuredAt", anthropometrydto.MeasuredAt);
+                parameters.Add("@Weight", anthropometrydto.Weight);
+                parameters.Add("@Height", anthropometrydto.Height);
+
+                var result = await connection.QuerySingleAsync<int>(
+                    "sp_AddAnthropometry",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+                return result;
+        }
+
+        public async Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", userId);
+
+                var result = await connection.QueryAsync<AnthropometryDTO>(
+                    StoredProceduresNames.GetAnthropometries,
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return result.ToList();
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error retrieving measurements for user {userId}: {e.Message}");
+            }
+        }
+        }
+    
 }
