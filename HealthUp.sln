@@ -4,8 +4,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CentralAPI", "CentralAPI\Ce
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataAccess", "DataAccess\DataAccess.csproj", "{5505C7B3-E6D3-4781-9E62-AAB8E2D961D5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI", "UI\UI.csproj", "{7F36DB71-0606-439C-8F98-130587E927E5}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,9 +18,5 @@ Global
 		{5505C7B3-E6D3-4781-9E62-AAB8E2D961D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5505C7B3-E6D3-4781-9E62-AAB8E2D961D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5505C7B3-E6D3-4781-9E62-AAB8E2D961D5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7F36DB71-0606-439C-8F98-130587E927E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7F36DB71-0606-439C-8F98-130587E927E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7F36DB71-0606-439C-8F98-130587E927E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7F36DB71-0606-439C-8F98-130587E927E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

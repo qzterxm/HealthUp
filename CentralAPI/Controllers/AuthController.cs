@@ -1,16 +1,15 @@
-﻿using System.Security.Claims;
-using DataAccess.Enums;
-using DataAccess.Models;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using WebApplication1.Interfaces;
+using DataAccess.Enums;
+using DataAccess.Models;
 
 namespace WebApplication1.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
@@ -18,7 +17,8 @@ public class AuthController : ControllerBase
     private readonly IJwtService _jwtHelper;
 
     public AuthController(IAuthService authService, IPasswordHelperService passwordHelper, IJwtService jwtHelper)
-    {   _authService = authService; 
+    {
+        _authService = authService;
         _passwordHelper = passwordHelper;
         _jwtHelper = jwtHelper;
     }
@@ -28,14 +28,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegistrationUser registrationUser)
     {
         if (string.IsNullOrEmpty(registrationUser.Email))
-            return BadRequest("Email is required");
+            return BadRequest(new { message = "Email is required", success = false, data = (object)null });
         if (string.IsNullOrEmpty(registrationUser.Password))
-            return BadRequest("Password is required");
+            return BadRequest(new { message = "Password is required", success = false, data = (object)null });
         if (string.IsNullOrEmpty(registrationUser.UserName))
-            return BadRequest("Username is required");
+            return BadRequest(new { message = "Username is required", success = false, data = (object)null });
 
         if (await _authService.GetUserByEmail(registrationUser.Email) != null)
-            return Conflict("Email already in use");
+            return Conflict(new { message = "Email already in use", success = false, data = (object)null });
 
         var hashedPassword = _passwordHelper.HashPassword(registrationUser.Password);
 
@@ -50,13 +50,9 @@ public class AuthController : ControllerBase
 
         var result = await _authService.Register(user);
         if (!result)
-            return BadRequest("Registration failed");
-        
-        return Ok(new
-        {
-            Message = "Registration successful.{}",
-            Success = true
-        });
+            return BadRequest(new { message = "Registration failed", success = false, data = (object)null });
+
+        return Ok(new { message = "Registration successful", success = true, data = new { id = user.Id, email = user.Email, role = user.UserRole } });
     }
 
     [HttpPost("login")]
@@ -64,21 +60,25 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginUser loginUser)
     {
         if (string.IsNullOrEmpty(loginUser.Email))
-            return BadRequest("Email is required");
+            return BadRequest(new { message = "Email is required", success = false, data = (object)null });
         if (string.IsNullOrEmpty(loginUser.Password))
-            return BadRequest("Password is required");
+            return BadRequest(new { message = "Password is required", success = false, data = (object)null });
 
         var user = await _authService.GetUserByEmail(loginUser.Email);
         if (user == null)
-            return Unauthorized("Invalid credentials");
-
+            return Unauthorized(new { message = "Invalid credentials", success = false, data = (object)null });
 
         if (!_passwordHelper.VerifyPassword(loginUser.Password, user.Password))
-            return Unauthorized("Invalid password");
+            return Unauthorized(new { message = "Invalid password", success = false, data = (object)null });
 
         var tokens = await _authService.Login(user, loginUser.RememberMe);
 
-        return Ok(tokens);
+        return Ok(new
+        {
+            message = "Login successful",
+            success = true,
+            data = new { accessToken = tokens.AccessToken, refreshToken = tokens.RefreshToken, expiresAt = tokens.RefreshTokenExpiresAt }
+        });
     }
 
     [HttpPost("refresh")]
@@ -86,45 +86,43 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> RefreshAccessToken([FromBody] TokenDTO tokensModel)
     {
         if (string.IsNullOrEmpty(tokensModel.AccessToken))
-            return BadRequest("Access token is required");
+            return BadRequest(new { message = "Access token is required", success = false, data = (object)null });
         if (string.IsNullOrEmpty(tokensModel.RefreshToken))
-            return BadRequest("Refresh token is required");
+            return BadRequest(new { message = "Refresh token is required", success = false, data = (object)null });
 
         try
         {
             var principal = _jwtHelper.GetPrincipalFromExpiredToken(tokensModel.AccessToken);
             if (principal == null)
-                return BadRequest("Invalid token");
+                return BadRequest(new { message = "Invalid token", success = false, data = (object)null });
 
             var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!Guid.TryParse(userId, out var userGuid))
-                return BadRequest("Invalid token");
+                return BadRequest(new { message = "Invalid token", success = false, data = (object)null });
 
             var user = await _authService.GetUserById(userGuid);
             if (user == null)
-                return Unauthorized("User not found");
+                return Unauthorized(new { message = "User not found", success = false, data = (object)null });
 
             var newTokens = await _authService.RefreshAccessToken(user);
-            return Ok(new TokenDTO
+            return Ok(new
             {
-                AccessToken = newTokens.AccessToken,
-                RefreshToken = newTokens.RefreshToken,
-                RefreshTokenExpiresAt = newTokens.RefreshTokenExpiresAt,
+                message = "Token refreshed",
+                success = true,
+                data = new { accessToken = newTokens.AccessToken, refreshToken = newTokens.RefreshToken, expiresAt = newTokens.RefreshTokenExpiresAt }
             });
         }
         catch (SecurityTokenMalformedException)
         {
-            return BadRequest("Invalid token format");
+            return BadRequest(new { message = "Invalid token format", success = false, data = (object)null });
         }
         catch (SecurityTokenExpiredException)
         {
-            return BadRequest("Token expired");
+            return BadRequest(new { message = "Token expired", success = false, data = (object)null });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, "An error occurred while refreshing token");
+            return StatusCode(500, new { message = "An error occurred while refreshing token", success = false, data = (object)null });
         }
     }
 }
-
-    
