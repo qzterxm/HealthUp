@@ -9,6 +9,9 @@
         public const string UpdateUser = "sp_Users_UpdateUser";
         public const string DeleteUser = "sp_Users_DeleteUser";
         public const string GetUserByEmail = "sp_Users_GetUserByEmail";
+        public const string AddPasswordResetCode = "sp_Users_AddPasswordResetCode";
+        public const string GetValidPasswordResetCode = "sp_Users_GetValidPasswordResetCode";
+        public const string UpdatePasswordResetCode = "sp_Users_UpdatePasswordResetCode";
         #endregion
 
         #region Health

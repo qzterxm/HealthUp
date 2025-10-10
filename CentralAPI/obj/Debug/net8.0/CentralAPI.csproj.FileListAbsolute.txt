@@ -114,3 +114,6 @@ C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Scrutor.dll
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.dll
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Filters.Abstractions.dll
 C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\Swashbuckle.AspNetCore.Annotations.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\BouncyCastle.Cryptography.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\MailKit.dll
+C:\Users\solok\RiderProjects\Solution1\CentralAPI\bin\Debug\net8.0\MimeKit.dll

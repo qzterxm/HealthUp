@@ -1,6 +1,6 @@
 ﻿
 using DataAccess.Enums;
-using WebApplication1.Enums;
+using DataAccess.Models;
 
 namespace DataAccess.Interfaces;
 

@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace DataAccess.Enums;
+namespace DataAccess.Models;
 
 public class HealthMeasurementDTO
 {     

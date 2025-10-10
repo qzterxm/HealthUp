@@ -15,13 +15,19 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly IPasswordHelperService _passwordHelper;
     private readonly IJwtService _jwtHelper;
+    private readonly IUserService _userService;
+    private readonly IPasswordResetService _passwordResetService;
 
-    public AuthController(IAuthService authService, IPasswordHelperService passwordHelper, IJwtService jwtHelper)
+    public AuthController(IAuthService authService, IPasswordHelperService passwordHelper, IJwtService jwtHelper,
+        IUserService userService, IPasswordResetService passwordResetService)
     {
         _authService = authService;
         _passwordHelper = passwordHelper;
         _jwtHelper = jwtHelper;
+        _userService = userService;
+        _passwordResetService = passwordResetService;
     }
+
 
     [HttpPost("register")]
     [AllowAnonymous]
@@ -124,5 +130,59 @@ public class AuthController : ControllerBase
         {
             return StatusCode(500, new { message = "An error occurred while refreshing token", success = false, data = (object)null });
         }
+    }
+    
+    
+    [HttpPost("request")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RequestPasswordReset([FromBody] PasswordResetRequest request)
+    {
+        if (string.IsNullOrEmpty(request?.Email))
+            return BadRequest(new { message = "Email is required", success = false, data = (object)null });
+
+        var user = await _authService.GetUserByEmail(request.Email);
+        if (user == null)
+            return Ok(new { message = "Email not found", success = true, data = (object)null }); // не показуємо що є/немає email
+
+        var result = await _passwordResetService.SendPasswordResetCode(request.Email);
+        return result
+            ? Ok(new { message = "Password reset code sent successfully", success = true, data = (object)null })
+            : StatusCode(500, new { message = "Failed to generate and send reset code", success = false, data = (object)null });
+    }
+
+    [HttpPost("recover-password")]
+    [Authorize]
+    public async Task<IActionResult> RecoveryPassword([FromBody] CompletePasswordResetRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Email))
+            return BadRequest(new { message = "Email is required", success = false, data = (object)null });
+
+        if (request.ResetCode < 1000 || request.ResetCode > 9999)
+            return BadRequest(new { message = "Invalid reset code format", success = false, data = (object)null });
+
+        if (string.IsNullOrEmpty(request.NewPassword))
+            return BadRequest(new { message = "New password is required", success = false, data = (object)null });
+
+
+    
+        var user = await _userService.GetUserByEmail(request.Email);
+        if (user == null)
+            return BadRequest(new { message = "Invalid or expired reset code", success = false, data = (object)null });
+
+        var codeUserId = await _passwordResetService.ValidateResetCode(user.Id, request.ResetCode);
+        if (codeUserId == null)
+            return BadRequest(new { message = "Invalid, expired or old reset code", success = false, data = (object)null });
+
+
+        var hashedPassword = _passwordHelper.HashPassword(request.NewPassword);
+        var result = await _passwordResetService.CompletePasswordReset(codeUserId.Value, hashedPassword, request.ResetCode);
+
+        return result
+            ? Ok(new { 
+                message = "Password reset successfully", 
+                success = true, 
+                data = new { email = request.Email } 
+            })
+            : StatusCode(500, new { message = "Failed to reset password", success = false, data = (object)null });
     }
 }

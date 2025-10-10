@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Dapper;
 using DataAccess.Enums;
+using DataAccess.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
@@ -21,6 +22,9 @@ namespace DataAccess.DataAccess
         Task <int>  AddAnthrometry(AnthropometryDTO anthropometrydto);
        
         Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId);
+
+        Task<int> AddPasswordResetCode(PasswordResetCode code);
+        Task <PasswordResetCode?> GetValidResetCode(Guid id, int resetCode);
     }
 
     public class DbAccessService : IDbAccessService
@@ -289,6 +293,49 @@ namespace DataAccess.DataAccess
                 throw new InvalidOperationException($"Error retrieving measurements for user {userId}: {e.Message}");
             }
         }
+
+        public async Task<int> AddPasswordResetCode(PasswordResetCode code)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", code.UserId);
+                parameters.Add("@ResetCode", code.ResetCode);
+                parameters.Add("@ExpiresAt", code.ExpiresAt);
+                parameters.Add("@IsUsed", code.IsUsed);
+
+                return await connection.ExecuteAsync(
+                    "sp_AddPasswordResetCode",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error adding password reset code: {e.Message}");
+            }
         }
+
+        public async Task<PasswordResetCode?> GetValidResetCode(Guid id, int resetCode)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", id); //TODO: змінити значення у бд з userid на email
+                parameters.Add("@ResetCode", resetCode);
+                return await connection.QuerySingleOrDefaultAsync<PasswordResetCode>(
+                    "sp_GetValidPasswordResetCode",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+            }
+            catch (Exception e)
+            {
+                throw new InvalidCastException("Error getting password reset code", e);
+            }
+           
+        }
+    }
     
 }

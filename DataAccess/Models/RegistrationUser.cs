@@ -1,4 +1,4 @@
-﻿using WebApplication1.Enums;
+﻿using DataAccess.Enums;
 
 namespace DataAccess.Models;
 

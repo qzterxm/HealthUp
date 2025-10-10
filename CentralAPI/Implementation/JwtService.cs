@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using DataAccess.Enums;
+using DataAccess.Models;
 using Microsoft.IdentityModel.Tokens;
 using WebApplication1.Interfaces;
 
@@ -29,21 +30,23 @@ public class JwtService : IJwtService
         
         if (!int.TryParse(configuration["JwtSettings:TokenExpiryMinutes"], out _accessTokenExpiryMinutes))
         {
-            _accessTokenExpiryMinutes = 15;
+            _accessTokenExpiryMinutes = 60;
         }
         
         if (!int.TryParse(configuration["JwtSettings:RefreshTokenExpiryDays"], out _refreshTokenExpiryDays))
         {
-            _refreshTokenExpiryDays = 3;
+            _refreshTokenExpiryDays = 7;
         }
     }
 
-    public TokenDTO GenerateTokens(IEnumerable<Claim> claims, TimeSpan refreshTokenLifetime)
+    public TokenDTO GenerateTokens(IEnumerable<Claim> claims, TimeSpan? refreshTokenLifetime)
     {
         if (claims == null) throw new ArgumentNullException(nameof(claims));
 
         var accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(_accessTokenExpiryMinutes);
-        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
+        var refreshTokenExpiresAt = refreshTokenLifetime.HasValue
+            ? DateTime.UtcNow.Add(refreshTokenLifetime.Value)
+            : DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
 
         var accessToken = GenerateAccessToken(claims, accessTokenExpiresAt);
         var refreshToken = GenerateRefreshToken();

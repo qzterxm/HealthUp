@@ -62,6 +62,10 @@
               "target": "Package",
               "version": "[4.0.0, )"
             },
+            "MailKit": {
+              "target": "Package",
+              "version": "[4.14.0, )"
+            },
             "Mapster": {
               "target": "Package",
               "version": "[7.4.2-pre02, )"
@@ -77,6 +81,10 @@
             "Microsoft.IdentityModel.JsonWebTokens": {
               "target": "Package",
               "version": "[8.13.0, )"
+            },
+            "MimeKit": {
+              "target": "Package",
+              "version": "[4.14.0, )"
             },
             "Serilog": {
               "target": "Package",

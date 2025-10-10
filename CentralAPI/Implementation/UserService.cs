@@ -1,6 +1,6 @@
 ﻿using DataAccess.Enums;
 using DataAccess.Interfaces;
-using WebApplication1.Enums;
+using DataAccess.Models;
 using WebApplication1.Interfaces;
 
 namespace WebApplication1.Implementation;
@@ -48,6 +48,10 @@ public class UserService : IUserService
         existingUser.UserName = user.UserName;
         existingUser.UserRole = user.UserRole;
 
+        if (!string.IsNullOrWhiteSpace(user.Password))
+        {
+            existingUser.Password = user.Password;
+        }
         return await _userRepository.UpdateUser(id, existingUser);
     }
     public async Task<bool> ChangeUserRole(Guid id, UserRoles newRole)

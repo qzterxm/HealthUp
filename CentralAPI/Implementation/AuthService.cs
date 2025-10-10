@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using DataAccess.Enums;
+using DataAccess.Models;
 using WebApplication1.Interfaces;
 
 namespace WebApplication1.Implementation;

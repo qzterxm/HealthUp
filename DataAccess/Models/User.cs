@@ -1,7 +1,7 @@
 ﻿
-using WebApplication1.Enums;
+using DataAccess.Enums;
 
-namespace DataAccess.Enums;
+namespace DataAccess.Models;
 
 public class User
 {

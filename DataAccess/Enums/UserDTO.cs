@@ -1,6 +1,4 @@
-﻿using WebApplication1.Enums;
-
-namespace DataAccess.Enums;
+﻿namespace DataAccess.Enums;
 
 public class UserDTO
 {

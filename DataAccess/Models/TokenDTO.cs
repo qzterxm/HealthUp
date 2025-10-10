@@ -1,4 +1,4 @@
-﻿namespace DataAccess.Enums;
+﻿namespace DataAccess.Models;
 
 public class TokenDTO
 {

@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using DataAccess.Enums;
-using WebApplication1.Enums;
+using DataAccess.Models;
 
 namespace DataAccess.DataAccess
 {

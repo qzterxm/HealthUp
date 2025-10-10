@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DataAccess.Enums;
 using DataAccess.Interfaces;
+using DataAccess.Models;
 
 namespace WebApplication1.Controllers;
 

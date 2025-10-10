@@ -1,5 +1,5 @@
 ﻿using DataAccess.Enums;
-using WebApplication1.Enums;
+using DataAccess.Models;
 
 namespace WebApplication1.Interfaces;
 

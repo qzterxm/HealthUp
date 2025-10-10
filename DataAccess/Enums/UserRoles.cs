@@ -1,4 +1,4 @@
-﻿namespace WebApplication1.Enums;
+﻿namespace DataAccess.Enums;
 
 public enum UserRoles
 {

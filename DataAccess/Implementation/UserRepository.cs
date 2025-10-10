@@ -2,9 +2,9 @@
 using DataAccess.DataAccess;
 using DataAccess.Enums;
 using DataAccess.Interfaces;
+using DataAccess.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using WebApplication1.Enums;
 
 namespace DataAccess.Implementation;
 
@@ -167,5 +167,6 @@ public class UserRepository : IUserRepository
     {
         return await _dbAccessService.GetAnthropometries(userId);
     }
+    
 }
 

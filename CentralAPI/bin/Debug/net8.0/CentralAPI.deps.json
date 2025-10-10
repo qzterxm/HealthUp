@@ -11,10 +11,12 @@
           "DataAccess": "1.0.0",
           "JWT": "11.0.0",
           "LoggerLite": "4.0.0",
+          "MailKit": "4.14.0",
           "Mapster": "7.4.2-pre02",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.0",
           "Microsoft.AspNetCore.OpenApi": "8.0.0",
           "Microsoft.IdentityModel.JsonWebTokens": "8.13.0",
+          "MimeKit": "4.14.0",
           "Serilog": "4.3.1-dev-02373",
           "Serilog.AspNetCore": "9.0.0",
           "Serilog.Settings.Configuration": "9.0.1-dev-02317",
@@ -71,6 +73,14 @@
           }
         }
       },
+      "BouncyCastle.Cryptography/2.6.1": {
+        "runtime": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.6.1.59591"
+          }
+        }
+      },
       "Dapper/2.1.66": {
         "runtime": {
           "lib/net8.0/Dapper.dll": {
@@ -95,6 +105,18 @@
           "lib/netstandard2.1/LoggerLite.dll": {
             "assemblyVersion": "4.0.0.0",
             "fileVersion": "4.0.0.0"
+          }
+        }
+      },
+      "MailKit/4.14.0": {
+        "dependencies": {
+          "MimeKit": "4.14.0",
+          "System.Formats.Asn1": "8.0.1"
+        },
+        "runtime": {
+          "lib/net8.0/MailKit.dll": {
+            "assemblyVersion": "4.14.0.0",
+            "fileVersion": "4.14.0.0"
           }
         }
       },
@@ -512,6 +534,18 @@
           }
         }
       },
+      "MimeKit/4.14.0": {
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.6.1",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        },
+        "runtime": {
+          "lib/net8.0/MimeKit.dll": {
+            "assemblyVersion": "4.14.0.0",
+            "fileVersion": "4.14.0.0"
+          }
+        }
+      },
       "Newtonsoft.Json/13.0.3": {
         "runtime": {
           "lib/net6.0/Newtonsoft.Json.dll": {
@@ -761,6 +795,7 @@
           }
         }
       },
+      "System.Formats.Asn1/8.0.1": {},
       "System.IdentityModel.Tokens.Jwt/8.13.0": {
         "dependencies": {
           "Microsoft.IdentityModel.JsonWebTokens": "8.13.0",
@@ -897,6 +932,13 @@
       "path": "bogus/35.6.3",
       "hashPath": "bogus.35.6.3.nupkg.sha512"
     },
+    "BouncyCastle.Cryptography/2.6.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-vZsG2YILhthgRqO+ZVgRff4ZFKKTl0v7kqaVBLCtRvpREhfBP33pcWrdA3PRYgWuFL1RxiUFvjMUHTdBZlJcoA==",
+      "path": "bouncycastle.cryptography/2.6.1",
+      "hashPath": "bouncycastle.cryptography.2.6.1.nupkg.sha512"
+    },
     "Dapper/2.1.66": {
       "type": "package",
       "serviceable": true,
@@ -917,6 +959,13 @@
       "sha512": "sha512-nThZ2vZ0TWZyfNFuAhc08MX0PBR+/04iCoAgFxZHCO8sBr15GTtjiaPccYk8O7N5rRPRUZZGHvk40pUaELYJEA==",
       "path": "loggerlite/4.0.0",
       "hashPath": "loggerlite.4.0.0.nupkg.sha512"
+    },
+    "MailKit/4.14.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-x1J8KIXGP8bWiiLox9g/hSdecqdDcOr9mZa4lumPjT1rvd+mnVm2pOOB4sYgABYcwW2uI7mAQMk7M+4OBD9iiA==",
+      "path": "mailkit/4.14.0",
+      "hashPath": "mailkit.4.14.0.nupkg.sha512"
     },
     "Mapster/7.4.2-pre02": {
       "type": "package",
@@ -1149,6 +1198,13 @@
       "path": "microsoft.sqlserver.server/1.0.0",
       "hashPath": "microsoft.sqlserver.server.1.0.0.nupkg.sha512"
     },
+    "MimeKit/4.14.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-g0LtsMC8DCTkc030C3UgVqbltOJmV5cz4AX8ASowz2ZA+lxopXSYtC1XXYmenxy606aWFLwi5Xy4cC/zyYjbjQ==",
+      "path": "mimekit/4.14.0",
+      "hashPath": "mimekit.4.14.0.nupkg.sha512"
+    },
     "Newtonsoft.Json/13.0.3": {
       "type": "package",
       "serviceable": true,
@@ -1302,6 +1358,13 @@
       "sha512": "sha512-n1ZP7NM2Gkn/MgD8+eOT5MulMj6wfeQMNS2Pizvq5GHCZfjlFMXV2irQlQmJhwA2VABC57M0auudO89Iu2uRLg==",
       "path": "system.diagnostics.eventlog/8.0.1",
       "hashPath": "system.diagnostics.eventlog.8.0.1.nupkg.sha512"
+    },
+    "System.Formats.Asn1/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XqKba7Mm/koKSjKMfW82olQdmfbI5yqeoLV/tidRp7fbh5rmHAQ5raDI/7SU0swTzv+jgqtUGkzmFxuUg0it1A==",
+      "path": "system.formats.asn1/8.0.1",
+      "hashPath": "system.formats.asn1.8.0.1.nupkg.sha512"
     },
     "System.IdentityModel.Tokens.Jwt/8.13.0": {
       "type": "package",

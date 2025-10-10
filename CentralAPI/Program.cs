@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Microsoft.IdentityModel.Logging;
+using WebApplication1.EmailSender;
 using WebApplication1.Implementation;
 using WebApplication1.Interfaces;
 
@@ -107,10 +108,17 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICalculationService, CalculationService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+
 //helpers
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHelperService, PasswordHelperService>();
 
+// EmailSender
+var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
+builder.Services.AddSingleton(emailSettings);
+builder.Services.AddTransient<IEmailService, EmailSender>();
+builder.Services.AddTransient<UseEmailSender>();
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()

@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Interfaces;
 using Mapster;
-using WebApplication1.Enums;
 
 namespace WebApplication1.Controllers;
 
