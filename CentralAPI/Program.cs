@@ -114,6 +114,9 @@ builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHelperService, PasswordHelperService>();
 
+//File
+builder.Services.AddScoped<IFileService, FileService>();
+
 // EmailSender
 var emailSettings = builder.Configuration.GetSection("EmailSettings").Get<EmailSettings>();
 builder.Services.AddSingleton(emailSettings);

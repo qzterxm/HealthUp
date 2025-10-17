@@ -11,12 +11,12 @@ namespace WebApplication1.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CalculationController : ControllerBase
+public class calculationController : ControllerBase
 {
     private readonly ICalculationService _calculationService;
     private readonly IUserRepository _userRepository;
 
-    public CalculationController(ICalculationService calculationService, IUserRepository userRepository)
+    public calculationController(ICalculationService calculationService, IUserRepository userRepository)
     {
         _calculationService = calculationService;
         _userRepository = userRepository;

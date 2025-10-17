@@ -10,7 +10,7 @@ namespace WebApplication1.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController : ControllerBase
+public class authController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IPasswordHelperService _passwordHelper;
@@ -18,7 +18,7 @@ public class AuthController : ControllerBase
     private readonly IUserService _userService;
     private readonly IPasswordResetService _passwordResetService;
 
-    public AuthController(IAuthService authService, IPasswordHelperService passwordHelper, IJwtService jwtHelper,
+    public authController(IAuthService authService, IPasswordHelperService passwordHelper, IJwtService jwtHelper,
         IUserService userService, IPasswordResetService passwordResetService)
     {
         _authService = authService;
@@ -134,7 +134,7 @@ public class AuthController : ControllerBase
     
     
     [HttpPost("request")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> RequestPasswordReset([FromBody] PasswordResetRequest request)
     {
         if (string.IsNullOrEmpty(request?.Email))
@@ -186,3 +186,4 @@ public class AuthController : ControllerBase
             : StatusCode(500, new { message = "Failed to reset password", success = false, data = (object)null });
     }
 }
+//TODO: перевірка чи належить файл юзеру , /*збереження файлів на aws s3? по id*/, малі літери, фічі

@@ -9,11 +9,11 @@ namespace WebApplication1.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class UserController : ControllerBase
+public class userController : ControllerBase
 {
     private readonly IUserService _userService;
 
-    public UserController(IUserService userService)
+    public userController(IUserService userService)
     {
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
     }

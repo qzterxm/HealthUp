@@ -16,15 +16,22 @@ namespace DataAccess.DataAccess
         Task<int> DeleteRecordById(string procedureName, Guid id);
         Task<TResult?> GetRecordById<TResult>(string procedureName, Guid id);
         Task<TResult?> GetOneByParameter<TResult>(string procedureName, string parameterName, object value);
+        Task<List<TResult>> GetRecordsByParameters<TResult>(string procedureName, DynamicParameters parameters); 
         
         Task<int> AddHealthMeasurement(HealthMeasurementDTO measurementDto);
         Task<List<HealthMeasurementDTO>> GetHealthMeasurements(Guid userId);
+        
         Task <int>  AddAnthrometry(AnthropometryDTO anthropometrydto);
-       
         Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId);
 
         Task<int> AddPasswordResetCode(PasswordResetCode code);
         Task <PasswordResetCode?> GetValidResetCode(Guid id, int resetCode);
+
+        Task<int> AddUserFile(DynamicParameters parameters);
+        Task<int> DeleteUserFile(DynamicParameters parameters);
+        Task<List<UserFile>> GetUserFile(DynamicParameters parameters);
+
+
     }
 
     public class DbAccessService : IDbAccessService
@@ -322,7 +329,7 @@ namespace DataAccess.DataAccess
             {
                 await using var connection = new SqlConnection(GetConnectionString());
                 var parameters = new DynamicParameters();
-                parameters.Add("@UserId", id); //TODO: змінити значення у бд з userid на email
+                parameters.Add("@UserId", id);
                 parameters.Add("@ResetCode", resetCode);
                 return await connection.QuerySingleOrDefaultAsync<PasswordResetCode>(
                     "sp_GetValidPasswordResetCode",
@@ -336,6 +343,47 @@ namespace DataAccess.DataAccess
             }
            
         }
+        
+        public async Task<int> AddUserFile(DynamicParameters parameters)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                return await connection.ExecuteAsync("sp_AddUserFile", parameters, commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error adding file: {e.Message}", e);
+            }
+        }
+        public async Task<List<UserFile>> GetUserFile(DynamicParameters parameters)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                var result = await connection.QueryAsync<UserFile>("sp_GetUserFile", parameters, commandType: CommandType.StoredProcedure);
+                return result.ToList();
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error retrieving file: {e.Message}", e);
+            }
+        }
+        public async Task<int> DeleteUserFile(DynamicParameters parameters)
+        {
+            try
+            {
+                await using var connection = new SqlConnection(GetConnectionString());
+                return await connection.ExecuteAsync("sp_DeleteUserFile", parameters, commandType: CommandType.StoredProcedure);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error deleting file: {e.Message}", e);
+            }
+        }
+
+
+
     }
     
 }

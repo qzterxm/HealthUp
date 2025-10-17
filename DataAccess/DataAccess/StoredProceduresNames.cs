@@ -12,6 +12,10 @@
         public const string AddPasswordResetCode = "sp_Users_AddPasswordResetCode";
         public const string GetValidPasswordResetCode = "sp_Users_GetValidPasswordResetCode";
         public const string UpdatePasswordResetCode = "sp_Users_UpdatePasswordResetCode";
+        public const string AddUserFile = "sp_Users_AddUserFile";
+        public const string GetUserFile = "sp_Users_GetUserFile";
+        public const string DeleteUserFile = "sp_Users_DeleteUserFile";
+        
         #endregion
 
         #region Health
