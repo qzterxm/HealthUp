@@ -186,4 +186,3 @@ public class authController : ControllerBase
             : StatusCode(500, new { message = "Failed to reset password", success = false, data = (object)null });
     }
 }
-//TODO: перевірка чи належить файл юзеру , /*збереження файлів на aws s3? по id*/, малі літери, фічі

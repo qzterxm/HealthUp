@@ -30,8 +30,20 @@ namespace DataAccess.DataAccess
         Task<int> AddUserFile(DynamicParameters parameters);
         Task<int> DeleteUserFile(DynamicParameters parameters);
         Task<List<UserFile>> GetUserFile(DynamicParameters parameters);
+        Task<int> AddUserNote(UserNoteDTO note);
+        Task<List<UserNoteDTO>> GetUserNotes(Guid userId);
+        Task<bool> DeleteUserNote(Guid userId, Guid noteId);
+        
+        Task<Guid> AddDoctorVisit(DoctorVisitDTO visit);
+        Task<List<DoctorVisitDTO>> GetDoctorVisits(Guid userId);
 
+        Task<int> AddVisitFile(Guid id, Guid userId, string fileName, string contentType, byte[] fileData,
+            DateTime uploadedAt, Guid? visitId = null);
+        
+        Task<IEnumerable<UserFile>> GetUserFileById(DynamicParameters parameters);
+        Task<int> DeleteUserFileById(DynamicParameters parameters);
 
+        
     }
 
     public class DbAccessService : IDbAccessService
@@ -264,20 +276,24 @@ namespace DataAccess.DataAccess
 
         public async Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto)
         {
-                await using var connection = new SqlConnection(GetConnectionString());
-                var parameters = new DynamicParameters();
-                parameters.Add("@UserId", anthropometrydto.UserId);
-                parameters.Add("@MeasuredAt", anthropometrydto.MeasuredAt);
-                parameters.Add("@Weight", anthropometrydto.Weight);
-                parameters.Add("@Height", anthropometrydto.Height);
+            await using var connection = new SqlConnection(GetConnectionString());
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", anthropometrydto.UserId);
+            parameters.Add("@MeasuredAt", anthropometrydto.MeasuredAt);
+            parameters.Add("@Weight", anthropometrydto.Weight);
+            parameters.Add("@Height", anthropometrydto.Height);
+            parameters.Add("@Sugar", anthropometrydto.Sugar);
+            parameters.Add("@BloodType", anthropometrydto.BloodType.HasValue ? (int?)anthropometrydto.BloodType : null);
 
-                var result = await connection.QuerySingleAsync<int>(
-                    "sp_AddAnthropometry",
-                    parameters,
-                    commandType: CommandType.StoredProcedure
-                );
-                return result;
+            var result = await connection.QuerySingleAsync<int>(
+                "sp_AddAnthropometry",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return result;
         }
+
 
         public async Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId)
         {
@@ -380,6 +396,109 @@ namespace DataAccess.DataAccess
             {
                 throw new InvalidOperationException($"Error deleting file: {e.Message}", e);
             }
+        }
+        public async Task<int> AddUserNote(UserNoteDTO note)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", note.UserId);
+            parameters.Add("@NoteText", note.NoteText);
+
+            return await connection.ExecuteAsync("sp_AddUserNote", parameters, commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task<List<UserNoteDTO>> GetUserNotes(Guid userId)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", userId);
+
+            var result = await connection.QueryAsync<UserNoteDTO>("sp_GetUserNotes", parameters, commandType: CommandType.StoredProcedure);
+            return result.ToList();
+        }
+
+        public async Task<bool> DeleteUserNote(Guid userId, Guid noteId)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", userId);
+            parameters.Add("@Id", noteId);
+
+            var rows = await connection.ExecuteAsync("sp_DeleteUserNote", parameters, commandType: CommandType.StoredProcedure);
+            return rows > 0;
+        }
+
+        public async Task<Guid> AddDoctorVisit(DoctorVisitDTO visit)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            var parameters = new DynamicParameters();
+            var id = visit.Id == Guid.Empty ? Guid.NewGuid() : visit.Id;
+            parameters.Add("@Id", id);
+            parameters.Add("@UserId", visit.UserId);
+            parameters.Add("@Specialist", visit.Specialist);
+            parameters.Add("@VisitType", visit.VisitType);
+            parameters.Add("@Diagnosis", visit.Diagnosis);
+            parameters.Add("@Prescription", visit.Prescription);
+            parameters.Add("@VisitedAt", visit.VisitedAt);
+
+            await connection.ExecuteAsync("sp_AddDoctorVisit", parameters, commandType: CommandType.StoredProcedure);
+
+            return id;
+        }
+
+
+        public async Task<List<DoctorVisitDTO>> GetDoctorVisits(Guid userId)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            var parameters = new DynamicParameters();
+            parameters.Add("@UserId", userId);
+
+            var visits = await connection.QueryAsync<DoctorVisitDTO>("sp_GetDoctorVisits", parameters, commandType: CommandType.StoredProcedure);
+            return visits.ToList();
+        }
+        public async Task<int> AddVisitFile(Guid id, Guid userId, string fileName, string contentType, byte[] fileData, DateTime uploadedAt, Guid? visitId = null)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@Id", id, DbType.Guid);
+            parameters.Add("@UserId", userId, DbType.Guid);
+            parameters.Add("@FileName", fileName, DbType.String, size: 255);
+            parameters.Add("@ContentType", contentType, DbType.String, size: 50);
+            parameters.Add("@FileData", fileData, DbType.Binary);
+            parameters.Add("@UploadedAt", uploadedAt, DbType.DateTime);
+            parameters.Add("@VisitId", visitId, DbType.Guid);
+
+            // sp_AddUserFile returns @@ROWCOUNT
+            var rowsAffected = await connection.ExecuteScalarAsync<int>(
+                "[dbo].[sp_AddUserFile]",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            return rowsAffected;
+        }
+        
+        
+        
+        
+        
+        public async Task<IEnumerable<UserFile>> GetUserFileById(DynamicParameters parameters)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            const string sql = @"
+        SELECT Id, UserId, FileName, ContentType, FileData, UploadedAt
+        FROM UserFiles
+        WHERE Id = @Id AND UserId = @UserId";
+    
+            return await connection.QueryAsync<UserFile>(sql, parameters);
+        }
+
+        public async Task<int> DeleteUserFileById(DynamicParameters parameters)
+        {
+            await using var connection = new SqlConnection(GetConnectionString());
+            const string sql = @"DELETE FROM UserFiles WHERE Id = @Id AND UserId = @UserId";
+    
+            return await connection.ExecuteAsync(sql, parameters);
         }
 
 

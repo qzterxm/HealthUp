@@ -8,4 +8,5 @@ public class UserFile
     public byte[] FileData { get; set; } 
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
     public Guid? UserId { get; set; } 
+    public Guid VisitId { get; set; }
 }

@@ -15,7 +15,11 @@
         public const string AddUserFile = "sp_Users_AddUserFile";
         public const string GetUserFile = "sp_Users_GetUserFile";
         public const string DeleteUserFile = "sp_Users_DeleteUserFile";
-        
+        public const string GetUserNotes =  "sp_GetUserNotes";
+        public const string AddUserNote = "sp_AddUserNote";
+        public const string DeleteUserNote = "sp_DeleteUserNote";
+        public const string AddDoctorVisit = "sp_AddDoctorVisit";
+        public const string GetDoctorVisits = "sp_GetDoctorVisits";
         #endregion
 
         #region Health

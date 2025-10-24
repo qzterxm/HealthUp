@@ -1,4 +1,6 @@
-﻿namespace DataAccess.Models;
+﻿using DataAccess.Enums;
+
+namespace DataAccess.Models;
 
 public class AnthropometryDTO
 {
@@ -6,4 +8,7 @@ public class AnthropometryDTO
     public DateTime MeasuredAt { get; set; }
     public double? Weight { get; set; }
     public int? Height { get; set; }
+    public double? Sugar { get; set; }
+    public BloodType? BloodType { get; set; }
+
 }

@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Dapper;
 using DataAccess.DataAccess;
+using DataAccess.Enums;
 using DataAccess.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -105,5 +106,111 @@ namespace WebApplication1.Implementation
                 return false;
             }
         }
+        
+        public async Task<object?> HandleFileOperationAsync(Guid userId, FileOperationType operation, Guid? fileId = null, IFormFile? file = null)
+{
+    switch (operation)
+    {
+        case FileOperationType.Upload:
+            if (file == null || file.Length == 0)
+                throw new ArgumentException("File is empty or missing.");
+
+            byte[] fileData;
+            using (var ms = new MemoryStream())
+            {
+                await file.CopyToAsync(ms);
+                fileData = ms.ToArray();
+            }
+
+            var newFile = new UserFile
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                FileName = file.FileName,
+                ContentType = file.ContentType,
+                FileData = fileData,
+                UploadedAt = DateTime.UtcNow
+            };
+
+            var addParams = new DynamicParameters();
+            addParams.Add("@Id", newFile.Id);
+            addParams.Add("@UserId", newFile.UserId);
+            addParams.Add("@FileName", newFile.FileName);
+            addParams.Add("@ContentType", newFile.ContentType);
+            addParams.Add("@FileData", newFile.FileData, DbType.Binary);
+            addParams.Add("@UploadedAt", newFile.UploadedAt);
+
+            await _dbAccessService.AddUserFile(addParams);
+            return newFile;
+
+        case FileOperationType.Download:
+            if (fileId == null)
+                throw new ArgumentNullException(nameof(fileId));
+
+            var getParams = new DynamicParameters();
+            getParams.Add("@UserId", userId);
+            getParams.Add("@Id", fileId);
+
+            var fileRecord = (await _dbAccessService.GetUserFileById(getParams)).FirstOrDefault();
+            if (fileRecord == null)
+                throw new FileNotFoundException("File not found or access denied.");
+
+            return fileRecord;
+
+        case FileOperationType.Delete:
+            if (fileId == null)
+                throw new ArgumentNullException(nameof(fileId));
+
+            var delParams = new DynamicParameters();
+            delParams.Add("@UserId", userId);
+            delParams.Add("@Id", fileId);
+
+            var rows = await _dbAccessService.DeleteUserFileById(delParams);
+            return rows > 0;
+
+        default:
+            throw new NotSupportedException("Unsupported file operation.");
+    }
+}
+        public async Task<UserFile> AttachFileToVisitAsync(Guid visitId, IFormFile file, Guid? fileId = null)
+        {
+            if (file == null || file.Length == 0)
+                throw new ArgumentException("File is empty or missing.");
+
+            byte[] fileData;
+            using (var ms = new MemoryStream())
+            {
+                await file.CopyToAsync(ms);
+                fileData = ms.ToArray();
+            }
+
+            var newFile = new UserFile
+            {
+                Id = fileId ?? Guid.NewGuid(),
+                VisitId = visitId, 
+                FileName = file.FileName,
+                ContentType = file.ContentType,
+                FileData = fileData,
+                UploadedAt = DateTime.UtcNow
+            };
+
+            // ⚠️ Передай також userId — можливо, ти отримаєш його з токена або контексту
+            var userId = Guid.NewGuid(); // <-- заміни на справжній userId
+
+            await _dbAccessService.AddVisitFile(
+                newFile.Id,
+                userId,
+                newFile.FileName,
+                newFile.ContentType,
+                newFile.FileData,
+                newFile.UploadedAt,
+                newFile.VisitId
+            );
+
+            return newFile;
+        }
+
+
+        
     }
 }
