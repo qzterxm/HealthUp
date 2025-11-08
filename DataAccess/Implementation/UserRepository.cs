@@ -168,5 +168,43 @@ public class UserRepository : IUserRepository
         return await _dbAccessService.GetAnthropometries(userId);
     }
     
+    
+    public async Task<HealthMeasurementDTO?> GetLatestMeasurement(Guid userId)
+    {
+        try
+        {
+            var measurements = await GetMeasurements(userId);
+            return measurements.OrderByDescending(m => m.MeasuredAt).FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[GetLatestMeasurement] Exception occurred for user: {UserId}", userId);
+            return null;
+        }
+    }
+
+    public async Task<AnthropometryDTO?> GetLatestAnthropometry(Guid userId)
+    {
+        try
+        {
+            var anthropometries = await GetAnthropometries(userId);
+        
+            _logger.LogInformation($"Found {anthropometries.Count} anthropometry records for user {userId}");
+            foreach (var anthro in anthropometries.OrderByDescending(a => a.MeasuredAt))
+            {
+                _logger.LogInformation($"Record: MeasuredAt={anthro.MeasuredAt}, Weight={anthro.Weight}, Height={anthro.Height}, Sugar={anthro.Sugar}, BloodType={anthro.BloodType}");
+            }
+        
+            var latest = anthropometries.OrderByDescending(a => a.MeasuredAt).FirstOrDefault();
+            _logger.LogInformation($"Selected latest: MeasuredAt={latest?.MeasuredAt}, Sugar={latest?.Sugar}");
+        
+            return latest;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[GetLatestAnthropometry] Exception occurred for user: {UserId}", userId);
+            return null;
+        }
+    }
 }
 

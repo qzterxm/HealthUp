@@ -9,4 +9,5 @@ public class UserFile
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
     public Guid? UserId { get; set; } 
     public Guid VisitId { get; set; }
+    
 }

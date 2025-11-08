@@ -17,4 +17,8 @@ public interface IUserRepository
     Task<List<HealthMeasurementDTO>> GetMeasurements(Guid userId);
     Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto);
     Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId);
+    
+
+    Task<HealthMeasurementDTO?> GetLatestMeasurement(Guid userId); 
+    Task<AnthropometryDTO?> GetLatestAnthropometry(Guid userId); 
 }

@@ -134,7 +134,7 @@ public class authController : ControllerBase
     
     
     [HttpPost("request")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> RequestPasswordReset([FromBody] PasswordResetRequest request)
     {
         if (string.IsNullOrEmpty(request?.Email))
@@ -142,7 +142,7 @@ public class authController : ControllerBase
 
         var user = await _authService.GetUserByEmail(request.Email);
         if (user == null)
-            return Ok(new { message = "Email not found", success = true, data = (object)null }); // не показуємо що є/немає email
+            return Ok(new { message = "Email not found", success = true, data = (object)null }); 
 
         var result = await _passwordResetService.SendPasswordResetCode(request.Email);
         return result
@@ -151,11 +151,11 @@ public class authController : ControllerBase
     }
 
     [HttpPost("recover-password")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> RecoveryPassword([FromBody] CompletePasswordResetRequest request)
     {
         if (string.IsNullOrEmpty(request.Email))
-            return BadRequest(new { message = "Email is required", success = false, data = (object)null });
+            return BadRequest(new { message = "Email is required", success = false, data = (object) null });
 
         if (request.ResetCode < 1000 || request.ResetCode > 9999)
             return BadRequest(new { message = "Invalid reset code format", success = false, data = (object)null });
