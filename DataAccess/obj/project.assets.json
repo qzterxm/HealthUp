@@ -6264,11 +6264,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\solok\\RiderProjects\\Solution1\\DataAccess\\DataAccess.csproj",
+      "projectUniqueName": "C:\\Users\\solok\\RiderProjects\\HealthUp\\DataAccess\\DataAccess.csproj",
       "projectName": "DataAccess",
-      "projectPath": "C:\\Users\\solok\\RiderProjects\\Solution1\\DataAccess\\DataAccess.csproj",
+      "projectPath": "C:\\Users\\solok\\RiderProjects\\HealthUp\\DataAccess\\DataAccess.csproj",
       "packagesPath": "C:\\Users\\solok\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\solok\\RiderProjects\\Solution1\\DataAccess\\obj\\",
+      "outputPath": "C:\\Users\\solok\\RiderProjects\\HealthUp\\DataAccess\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -6283,7 +6283,6 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -6301,7 +6300,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0": {
@@ -6368,7 +6368,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.407/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

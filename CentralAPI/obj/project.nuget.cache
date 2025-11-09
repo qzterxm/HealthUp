@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "0tl5AtTg0GM=",
+  "dgSpecHash": "qRuBYI1Fkvc=",
   "success": true,
-  "projectFilePath": "C:\\Users\\solok\\RiderProjects\\Solution1\\CentralAPI\\CentralAPI.csproj",
+  "projectFilePath": "C:\\Users\\solok\\RiderProjects\\HealthUp\\CentralAPI\\CentralAPI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\solok\\.nuget\\packages\\azure.core\\1.44.1\\azure.core.1.44.1.nupkg.sha512",
     "C:\\Users\\solok\\.nuget\\packages\\azure.identity\\1.13.2\\azure.identity.1.13.2.nupkg.sha512",
