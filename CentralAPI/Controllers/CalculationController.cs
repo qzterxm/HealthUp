@@ -1,4 +1,5 @@
 ﻿
+using Dapper;
 using DataAccess.Enums;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Interfaces;
@@ -14,11 +15,13 @@ public class calculationController : ControllerBase
 {
     private readonly ICalculationService _calculationService;
     private readonly IUserRepository _userRepository;
+    private readonly ILogger _logger;
 
-    public calculationController(ICalculationService calculationService, IUserRepository userRepository)
+    public calculationController(ICalculationService calculationService, IUserRepository userRepository,  ILogger<calculationController> logger)
     {
         _calculationService = calculationService;
         _userRepository = userRepository;
+        _logger = logger;
     }
 
     [HttpPost("add-measurement")]
@@ -32,76 +35,155 @@ public class calculationController : ControllerBase
 
         return Ok(new { message = "Measurement added", success = true, data = measurementDto });
     }
-
+    
     [HttpPost("add-anthropometry")]
-    public async Task<IActionResult> AddAnthropometry([FromBody] AnthropometryDTO dto)
+public async Task<IActionResult> AddAnthropometry([FromBody] AnthropometryDTO dto)
+{
+    try
     {
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+                
+            return BadRequest(new { 
+                message = "Validation failed", 
+                success = false, 
+                errors = errors,
+                data = (object)null 
+            });
+        }
+
+        if (dto.UserId == Guid.Empty)
+            return BadRequest(new { message = "Valid UserId is required", success = false, data = (object)null });
+
         if (dto.Weight <= 0 || dto.Height <= 0)
-            return BadRequest(new { message = "Weight or Height must be greater than 0", success = false, data = (object)null });
+            return BadRequest(new { message = "Weight and Height must be greater than 0", success = false, data = (object)null });
+
+        var user = await _userRepository.GetById(dto.UserId);
+        if (user == null)
+        {
+            return NotFound(new { 
+                message = $"User with ID {dto.UserId} not found", 
+                success = false, 
+                data = (object)null 
+            });
+        }
 
         if (dto.MeasuredAt == default)
         {
             dto.MeasuredAt = DateTime.UtcNow;
         }
 
+        _logger.LogInformation("Adding anthropometry for user {UserId}: Weight={Weight}, Height={Height}, Sugar={Sugar}, BloodType={BloodType}", 
+            dto.UserId, dto.Weight, dto.Height, dto.Sugar, dto.BloodType);
+
         var result = await _userRepository.AddAnthrometry(dto);
+        
         return result > 0
-            ? Ok(new { message = "Anthropometry added", success = true, data = new { id = dto.UserId } })
+            ? Ok(new { message = "Anthropometry added successfully", success = true, data = new { userId = dto.UserId } })
             : StatusCode(500, new { message = "Failed to add anthropometry", success = false, data = (object)null });
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error adding anthropometry for user {UserId}", dto?.UserId);
+        return StatusCode(500, new { 
+            message = "An error occurred while adding anthropometry", 
+            success = false, 
+            data = (object)null 
+        });
+    }
+}
     
     
 [HttpGet("get-average")]
 public async Task<IActionResult> GetAverages([FromQuery] Guid userId)
 {
-    if (userId == Guid.Empty)
-        return BadRequest(new { message = "UserId is required", success = false, data = (object)null });
-
-    var measurementsTask = _userRepository.GetMeasurements(userId);
-    var anthropometriesTask = _userRepository.GetAnthropometries(userId); // Отримуємо всі записи
-  
-    await Task.WhenAll(measurementsTask, anthropometriesTask);
-
-    var allMeasurements = measurementsTask.Result;
-    var allAnthropometries = anthropometriesTask.Result;
-    
-    var latestAnthropometry = allAnthropometries.OrderByDescending(a => a.MeasuredAt).FirstOrDefault();
-    
-    double avgHR = allMeasurements.Any() ? allMeasurements.Average(m => m.HeartRate ?? 0) : 0;
-    double avgSystolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Systolic ?? 0) : 0;
-    double avgDiastolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Diastolic ?? 0) : 0;
-    
-    double latestHeight = latestAnthropometry?.Height ?? 0.0;
-    double latestWeight = latestAnthropometry?.Weight ?? 0.0;
-    double latestSugar = latestAnthropometry?.Sugar ?? 0.0;
-    
-    double imt = 0;
-    if (latestHeight > 0 && latestWeight > 0)
+    try
     {
-        imt = await _calculationService.CalculateIMT(latestHeight, latestWeight);
-    }
+        if (userId == Guid.Empty)
+            return BadRequest(new { message = "UserId is required", success = false, data = (object)null });
 
-    string bloodGroupString = GetBloodGroupString(latestAnthropometry?.BloodType);
+        _logger.LogInformation("=== GetAverages START for user: {UserId} ===", userId);
 
-    return Ok(new
-    {
-        message = "Average and latest data retrieved",
-        success = true,
-        data = new
+        var measurementsTask = _userRepository.GetMeasurements(userId);
+        var anthropometriesTask = _userRepository.GetAnthropometries(userId);
+
+        await Task.WhenAll(measurementsTask, anthropometriesTask);
+
+        var allMeasurements = measurementsTask.Result;
+        var allAnthropometries = anthropometriesTask.Result;
+        
+        _logger.LogInformation("Measurements count: {MeasurementsCount}", allMeasurements.Count);
+        _logger.LogInformation("Anthropometries count: {AnthropometryCount}", allAnthropometries.Count);
+
+        foreach (var anthro in allAnthropometries)
         {
-            averageHeartRate = avgHR,
-            averageSystolic = (int)Math.Round(avgSystolic), 
-            averageDiastolic = (int)Math.Round(avgDiastolic), 
-            latestHeartRate = allMeasurements.OrderByDescending(m => m.MeasuredAt).FirstOrDefault()?.HeartRate ?? 0,
-            latestHeight = (int)Math.Round(latestHeight),
-            latestWeight = (int)Math.Round(latestWeight), 
-            bloodGroup = bloodGroupString,
-            imt = imt,
-            latestSugar = latestSugar
+            _logger.LogInformation("Anthro Data - Weight: {Weight}, Height: {Height}, Sugar: {Sugar}, BloodType: {BloodType}", 
+                anthro.Weight, anthro.Height, anthro.Sugar, anthro.BloodType);
         }
-    });
-}
 
+        var latestAnthropometry = allAnthropometries.OrderByDescending(a => a.MeasuredAt).FirstOrDefault();
+        
+        _logger.LogInformation("Latest anthropometry: {Latest}", 
+            latestAnthropometry != null ? 
+            $"Weight={latestAnthropometry.Weight}, Height={latestAnthropometry.Height}, Sugar={latestAnthropometry.Sugar}, BloodType={latestAnthropometry.BloodType}" : 
+            "NULL");
+
+        double avgHR = allMeasurements.Any() ? allMeasurements.Average(m => m.HeartRate ?? 0) : 0;
+        double avgSystolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Systolic ?? 0) : 0;
+        double avgDiastolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Diastolic ?? 0) : 0;
+        
+        double latestHeight = latestAnthropometry?.Height ?? 0.0;
+        double latestWeight = latestAnthropometry?.Weight ?? 0.0;
+        double latestSugar = latestAnthropometry?.Sugar ?? 0.0;
+        
+        _logger.LogInformation("Calculated values - LatestHeight: {LatestHeight}, LatestWeight: {LatestWeight}, LatestSugar: {LatestSugar}", 
+            latestHeight, latestWeight, latestSugar);
+
+        double imt = 0;
+        if (latestHeight > 0 && latestWeight > 0)
+        {
+            double heightInMeters = latestHeight / 100.0; 
+            imt = latestWeight / (heightInMeters * heightInMeters);
+            _logger.LogInformation("IMT calculation: {Weight} / ({Height}/100)^2 = {IMT}", 
+                latestWeight, latestHeight, imt);
+        }
+
+        string bloodGroupString = GetBloodGroupString(latestAnthropometry?.BloodType);
+
+        _logger.LogInformation("=== GetAverages END ===");
+
+        return Ok(new
+        {
+            message = "Average and latest data retrieved",
+            success = true,
+            data = new
+            {
+                averageHeartRate = Math.Round(avgHR, 1),
+                averageSystolic = (int)Math.Round(avgSystolic), 
+                averageDiastolic = (int)Math.Round(avgDiastolic), 
+                latestHeartRate = allMeasurements.OrderByDescending(m => m.MeasuredAt).FirstOrDefault()?.HeartRate ?? 0,
+                latestHeight = latestHeight,
+                latestWeight = latestWeight, 
+                bloodGroup = bloodGroupString,
+                imt = Math.Round(imt, 1),
+                latestSugar = latestSugar
+            }
+        });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error in GetAverages for user {UserId}", userId);
+        return StatusCode(500, new { 
+            message = "An error occurred while retrieving data", 
+            success = false, 
+            data = (object)null 
+        });
+    }
+}
 private string GetBloodGroupString(BloodType? type)
 {
     return type switch
@@ -117,5 +199,77 @@ private string GetBloodGroupString(BloodType? type)
         _ => "N/A"
     };
 }
-    
+
+[HttpPost("update-health-data")]
+public async Task<IActionResult> UpdateHealthData([FromBody] UpdateUserHealthDataDTO healthData)
+{
+    try
+    {
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+                
+            return BadRequest(new { 
+                message = "Validation failed", 
+                success = false, 
+                errors = errors,
+                data = (object)null 
+            });
+        }
+
+        if (healthData.UserId == Guid.Empty)
+            return BadRequest(new { message = "Valid UserId is required", success = false, data = (object)null });
+
+        var user = await _userRepository.GetById(healthData.UserId);
+        if (user == null)
+            return NotFound(new { message = "User not found", success = false, data = (object)null });
+
+        _logger.LogInformation("Updating health data for user: {UserId}", healthData.UserId);
+
+        var result = await _userRepository.UpdateUserHealthData(healthData);
+        
+        if (result)
+        {
+            return Ok(new { 
+                message = "Health data updated successfully", 
+                success = true, 
+                data = new { 
+                    userId = healthData.UserId,
+                    updatedFields = new {
+                        Age = healthData.Age,
+                        Gender = healthData.Gender.ToString(),
+                        DateOfBirth = healthData.DateOfBirth?.ToString("yyyy-MM-dd"),
+                        Country = healthData.Country,
+                        PhoneNumber = healthData.PhoneNumber,
+                        BloodType = healthData.BloodType?.ToString(),
+                        SugarLevel = healthData.SugarLevel,
+                        Height = healthData.Height,
+                        Weight = healthData.Weight
+                    }
+                } 
+            });
+        }
+        else
+        {
+            return StatusCode(500, new { 
+                message = "Failed to update health data", 
+                success = false, 
+                data = (object)null 
+            });
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error updating health data for user {UserId}", healthData.UserId);
+        return StatusCode(500, new { 
+            message = "An error occurred while updating health data", 
+            success = false, 
+            data = (object)null 
+        });
+    }
+}
+
 }

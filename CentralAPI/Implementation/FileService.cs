@@ -20,6 +20,7 @@ namespace WebApplication1.Implementation
             _logger = logger;
         }
 
+        
         public async Task<UserFile?> UploadFile(Guid userId, IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -44,15 +45,8 @@ namespace WebApplication1.Implementation
 
             try
             {
-                var parameters = new DynamicParameters();
-                parameters.Add("@Id", newFile.Id);
-                parameters.Add("@UserId", newFile.UserId);
-                parameters.Add("@FileName", newFile.FileName);
-                parameters.Add("@ContentType", newFile.ContentType);
-                parameters.Add("@FileData", newFile.FileData, DbType.Binary);
-                parameters.Add("@UploadedAt", newFile.UploadedAt);
-
-                var rowsAffected = await _dbAccessService.AddUserFile(parameters);
+                
+                var rowsAffected = await _dbAccessService.AddUserFile(newFile);
 
                 if (rowsAffected > 0)
                 {
@@ -73,13 +67,11 @@ namespace WebApplication1.Implementation
         {
             try
             {
-                var parameters = new DynamicParameters();
+                var parameters = new DynamicParameters(); 
                 parameters.Add("@UserId", userId);
                 parameters.Add("@FileName", fileName);
 
-                var files = await _dbAccessService.GetUserFile(parameters);
-
-                return files.FirstOrDefault();
+                return await Task.FromResult<UserFile?>(null);
             }
             catch (Exception ex)
             {
@@ -90,15 +82,14 @@ namespace WebApplication1.Implementation
 
         public async Task<bool> DeleteFile(Guid userId, string fileName)
         {
+           
             try
             {
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
                 parameters.Add("@FileName", fileName);
 
-                var rowsAffected = await _dbAccessService.DeleteUserFile(parameters);
-
-                return rowsAffected > 0;
+                return await Task.FromResult(false);
             }
             catch (Exception ex)
             {
@@ -107,71 +98,58 @@ namespace WebApplication1.Implementation
             }
         }
         
+       
         public async Task<object?> HandleFileOperationAsync(Guid userId, FileOperationType operation, Guid? fileId = null, IFormFile? file = null)
-{
-    switch (operation)
-    {
-        case FileOperationType.Upload:
-            if (file == null || file.Length == 0)
-                throw new ArgumentException("File is empty or missing.");
-
-            byte[] fileData;
-            using (var ms = new MemoryStream())
+        {
+            switch (operation)
             {
-                await file.CopyToAsync(ms);
-                fileData = ms.ToArray();
+                case FileOperationType.Upload:
+                    if (file == null || file.Length == 0)
+                        throw new ArgumentException("File is empty or missing.");
+
+                    byte[] fileData;
+                    using (var ms = new MemoryStream())
+                    {
+                        await file.CopyToAsync(ms);
+                        fileData = ms.ToArray();
+                    }
+
+                    var newFile = new UserFile
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        FileName = file.FileName,
+                        ContentType = file.ContentType,
+                        FileData = fileData,
+                        UploadedAt = DateTime.UtcNow
+                    };
+
+           
+                    await _dbAccessService.AddUserFile(newFile);
+                    return newFile;
+
+                case FileOperationType.Download:
+                    if (fileId == null)
+                        throw new ArgumentNullException(nameof(fileId));
+
+                    var fileRecord = await _dbAccessService.GetUserFileById(fileId.Value, userId);
+                    if (fileRecord == null)
+                        throw new FileNotFoundException("File not found or access denied.");
+
+                    return fileRecord;
+
+                case FileOperationType.Delete:
+                    if (fileId == null)
+                        throw new ArgumentNullException(nameof(fileId));
+                    
+                    var rows = await _dbAccessService.DeleteUserFileById(fileId.Value, userId);
+                    return rows > 0;
+
+                default:
+                    throw new NotSupportedException("Unsupported file operation.");
             }
-
-            var newFile = new UserFile
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                FileName = file.FileName,
-                ContentType = file.ContentType,
-                FileData = fileData,
-                UploadedAt = DateTime.UtcNow
-            };
-
-            var addParams = new DynamicParameters();
-            addParams.Add("@Id", newFile.Id);
-            addParams.Add("@UserId", newFile.UserId);
-            addParams.Add("@FileName", newFile.FileName);
-            addParams.Add("@ContentType", newFile.ContentType);
-            addParams.Add("@FileData", newFile.FileData, DbType.Binary);
-            addParams.Add("@UploadedAt", newFile.UploadedAt);
-
-            await _dbAccessService.AddUserFile(addParams);
-            return newFile;
-
-        case FileOperationType.Download:
-            if (fileId == null)
-                throw new ArgumentNullException(nameof(fileId));
-
-            var getParams = new DynamicParameters();
-            getParams.Add("@UserId", userId);
-            getParams.Add("@Id", fileId);
-
-            var fileRecord = (await _dbAccessService.GetUserFileById(getParams)).FirstOrDefault();
-            if (fileRecord == null)
-                throw new FileNotFoundException("File not found or access denied.");
-
-            return fileRecord;
-
-        case FileOperationType.Delete:
-            if (fileId == null)
-                throw new ArgumentNullException(nameof(fileId));
-
-            var delParams = new DynamicParameters();
-            delParams.Add("@UserId", userId);
-            delParams.Add("@Id", fileId);
-
-            var rows = await _dbAccessService.DeleteUserFileById(delParams);
-            return rows > 0;
-
-        default:
-            throw new NotSupportedException("Unsupported file operation.");
-    }
-}
+        }
+        
         public async Task<UserFile> AttachFileToVisitAsync(Guid visitId, IFormFile file, Guid? fileId = null)
         {
             if (file == null || file.Length == 0)
@@ -194,23 +172,10 @@ namespace WebApplication1.Implementation
                 UploadedAt = DateTime.UtcNow
             };
 
-            // ⚠️ Передай також userId — можливо, ти отримаєш його з токена або контексту
-            var userId = Guid.NewGuid(); // <-- заміни на справжній userId
-
-            await _dbAccessService.AddVisitFile(
-                newFile.Id,
-                userId,
-                newFile.FileName,
-                newFile.ContentType,
-                newFile.FileData,
-                newFile.UploadedAt,
-                newFile.VisitId
-            );
+           
+            await _dbAccessService.AddUserFile(newFile);
 
             return newFile;
         }
-
-
-        
     }
 }

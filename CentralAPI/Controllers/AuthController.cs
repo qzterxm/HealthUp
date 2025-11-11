@@ -17,15 +17,17 @@ public class authController : ControllerBase
     private readonly IJwtService _jwtHelper;
     private readonly IUserService _userService;
     private readonly IPasswordResetService _passwordResetService;
+    private readonly ILogger<authController> _logger;
 
     public authController(IAuthService authService, IPasswordHelperService passwordHelper, IJwtService jwtHelper,
-        IUserService userService, IPasswordResetService passwordResetService)
+        IUserService userService, IPasswordResetService passwordResetService,  ILogger<authController> logger)
     {
         _authService = authService;
         _passwordHelper = passwordHelper;
         _jwtHelper = jwtHelper;
         _userService = userService;
         _passwordResetService = passwordResetService;
+        _logger = logger;
     }
 
 
@@ -70,14 +72,31 @@ public class authController : ControllerBase
         if (string.IsNullOrEmpty(loginUser.Password))
             return BadRequest(new { message = "Password is required", success = false, data = (object)null });
 
+        Console.WriteLine($"Login attempt for: {loginUser.Email}");
+
         var user = await _authService.GetUserByEmail(loginUser.Email);
         if (user == null)
+        {
+            Console.WriteLine($"User not found: {loginUser.Email}");
             return Unauthorized(new { message = "Invalid credentials", success = false, data = (object)null });
+        }
+
+        Console.WriteLine($"User found: {user.Email}, ID: {user.Id}");
+        Console.WriteLine($"Stored password hash: {user.Password}");
+
+        var hashedInput = _passwordHelper.HashPassword(loginUser.Password);
+        Console.WriteLine($"Input password hash: {hashedInput}");
+        Console.WriteLine($"Passwords match: {hashedInput == user.Password}");
 
         if (!_passwordHelper.VerifyPassword(loginUser.Password, user.Password))
-            return Unauthorized(new { message = "Invalid password", success = false, data = (object)null });
+        {
+            Console.WriteLine($"Password verification failed for: {loginUser.Email}");
+            return Unauthorized(new { message = "Invalid credentials", success = false, data = (object)null });
+        }
 
         var tokens = await _authService.Login(user, loginUser.RememberMe);
+
+        Console.WriteLine($"Login successful for: {loginUser.Email}");
 
         return Ok(new
         {
@@ -86,7 +105,6 @@ public class authController : ControllerBase
             data = new { accessToken = tokens.AccessToken, refreshToken = tokens.RefreshToken, expiresAt = tokens.RefreshTokenExpiresAt }
         });
     }
-
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<IActionResult> RefreshAccessToken([FromBody] TokenDTO tokensModel)
@@ -154,35 +172,70 @@ public class authController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> RecoveryPassword([FromBody] CompletePasswordResetRequest request)
     {
-        if (string.IsNullOrEmpty(request.Email))
-            return BadRequest(new { message = "Email is required", success = false, data = (object) null });
+        try
+        {
+            _logger.LogInformation("=== Password Recovery START ===");
+            _logger.LogInformation("Email: {Email}, ResetCode: {ResetCode}", request.Email, request.ResetCode);
 
-        if (request.ResetCode < 1000 || request.ResetCode > 9999)
-            return BadRequest(new { message = "Invalid reset code format", success = false, data = (object)null });
+            if (string.IsNullOrEmpty(request.Email))
+                return BadRequest(new { message = "Email is required", success = false, data = (object)null });
 
-        if (string.IsNullOrEmpty(request.NewPassword))
-            return BadRequest(new { message = "New password is required", success = false, data = (object)null });
+            if (request.ResetCode < 1000 || request.ResetCode > 9999)
+                return BadRequest(new { message = "Invalid reset code format", success = false, data = (object)null });
 
+            if (string.IsNullOrEmpty(request.NewPassword))
+                return BadRequest(new { message = "New password is required", success = false, data = (object)null });
 
-    
-        var user = await _userService.GetUserByEmail(request.Email);
-        if (user == null)
-            return BadRequest(new { message = "Invalid or expired reset code", success = false, data = (object)null });
+            var user = await _userService.GetUserByEmail(request.Email);
+            if (user == null)
+            {
+                _logger.LogWarning("User not found: {Email}", request.Email);
+                return BadRequest(new { message = "Invalid or expired reset code", success = false, data = (object)null });
+            }
 
-        var codeUserId = await _passwordResetService.ValidateResetCode(user.Id, request.ResetCode);
-        if (codeUserId == null)
-            return BadRequest(new { message = "Invalid, expired or old reset code", success = false, data = (object)null });
+            _logger.LogInformation("User found: {Email}, ID: {UserId}", user.Email, user.Id);
+            _logger.LogInformation("Current password hash: {CurrentHash}", user.Password);
 
+            var codeUserId = await _passwordResetService.ValidateResetCode(user.Id, request.ResetCode);
+            if (codeUserId == null)
+            {
+                _logger.LogWarning("Invalid reset code for user: {Email}", request.Email);
+                return BadRequest(new { message = "Invalid, expired or old reset code", success = false, data = (object)null });
+            }
 
-        var hashedPassword = _passwordHelper.HashPassword(request.NewPassword);
-        var result = await _passwordResetService.CompletePasswordReset(codeUserId.Value, hashedPassword, request.ResetCode);
+            _logger.LogInformation("Reset code validated successfully");
 
-        return result
-            ? Ok(new { 
-                message = "Password reset successfully", 
-                success = true, 
-                data = new { email = request.Email } 
-            })
-            : StatusCode(500, new { message = "Failed to reset password", success = false, data = (object)null });
+            var hashedPassword = _passwordHelper.HashPassword(request.NewPassword);
+            _logger.LogInformation("New password hash: {NewHash}", hashedPassword);
+
+            var result = await _passwordResetService.CompletePasswordReset(codeUserId.Value, hashedPassword, request.ResetCode);
+
+            _logger.LogInformation("Password reset result: {Result}", result);
+
+            if (result)
+            {
+                var updatedUser = await _userService.GetUserByEmail(request.Email);
+                _logger.LogInformation("Password after reset: {UpdatedHash}", updatedUser?.Password);
+            }
+
+            _logger.LogInformation("=== Password Recovery END ===");
+
+            return result
+                ? Ok(new { 
+                    message = "Password reset successfully", 
+                    success = true, 
+                    data = new { email = request.Email } 
+                })
+                : StatusCode(500, new { message = "Failed to reset password", success = false, data = (object)null });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in password recovery for {Email}", request.Email);
+            return StatusCode(500, new { 
+                message = "An error occurred during password recovery", 
+                success = false, 
+                data = (object)null 
+            });
+        }
     }
-}
+    }

@@ -13,12 +13,19 @@ using Microsoft.IdentityModel.Logging;
 using WebApplication1.EmailSender;
 using WebApplication1.Implementation;
 using WebApplication1.Interfaces;
-
+using SQLitePCL;
+using DataAccess.DataAccess;
 
 IdentityModelEventSource.ShowPII = true;
 
 var builder = WebApplication.CreateBuilder(args);
-
+SQLitePCL.Batteries.Init();
+SQLitePCL.Batteries.Init();
+// Register type handlers
+Dapper.SqlMapper.AddTypeHandler(new GuidTypeHandler());
+Dapper.SqlMapper.AddTypeHandler(new NullableGuidTypeHandler());
+Dapper.SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+Dapper.SqlMapper.AddTypeHandler(new NullableDateOnlyTypeHandler());
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(opts =>
 {
@@ -139,19 +146,24 @@ builder.Host.UseSerilog((context, configuration) =>
 // Build the application
 var app = builder.Build();
 
-
-
 // SEED DATA
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
-    var dbAccessService = services.GetRequiredService<IDbAccessService>();
-    var seeder = new DataSeeder(dbAccessService);
+    try
+    {
+        var dbAccessService = services.GetRequiredService<IDbAccessService>();
+        var seeder = new DataSeeder(dbAccessService);
 
-    await seeder.Seed();
+        await seeder.Seed();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
 }
-
 
 app.UseSwagger();
 app.UseSwaggerUI();

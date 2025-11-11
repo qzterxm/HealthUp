@@ -21,4 +21,6 @@ public interface IUserRepository
 
     Task<HealthMeasurementDTO?> GetLatestMeasurement(Guid userId); 
     Task<AnthropometryDTO?> GetLatestAnthropometry(Guid userId); 
+    
+    Task<bool> UpdateUserHealthData(UpdateUserHealthDataDTO healthData);
 }

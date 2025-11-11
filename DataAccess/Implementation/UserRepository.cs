@@ -32,7 +32,7 @@ public class UserRepository : IUserRepository
     {
         try
         {
-            var user = await _dbAccessService.GetOneByParameter<User>(StoredProceduresNames.GetUserById, "Id", id);
+            var user = await _dbAccessService.GetOneByParameter<User>(SqlQueries.GetUserById, "Id", id);
             return user;
         }
         catch (Exception ex)
@@ -41,39 +41,34 @@ public class UserRepository : IUserRepository
         } 
     }
     public async Task<bool> CreateUser(User entity)
-         {
-             try
-             {
-                 var rows = await _dbAccessService.AddRecord(
-                     StoredProceduresNames.CreateUser,
-                     new
-                     {
-                         entity.Id,
-                         entity.Email,
-                         entity.UserName,
-                         entity.Password,
-                         UserRole = (int)entity.UserRole
-                     });
+    {
+        try
+        {
+            
+            var rows = await _dbAccessService.AddRecord(
+                SqlQueries.CreateUser,
+                entity 
+            );
      
-                 if (rows == 0)
-                 {
-                     _logger.LogWarning("[CreateUser] No rows affected. Possible duplicate email: {Email}", entity.Email);
-                 }
+            if (rows == 0)
+            {
+                _logger.LogWarning("[CreateUser] No rows affected. Possible duplicate email: {Email}", entity.Email);
+            }
      
-                 return rows > 0;
-             }
-             catch (Exception ex)
-             {
-                 _logger.LogError(ex, "[CreateUser] Exception occurred while creating user with Email: {Email}", entity.Email);
-                 return false;
-             }
-         }
+            return rows > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[CreateUser] Exception occurred while creating user with Email: {Email}", entity.Email);
+            return false;
+        }
+    }
     public async Task<User?> GetUserByEmail(string email)
     {
         try
         {
             var userAddResult =
-                await _dbAccessService.GetOneByParameter<User>(StoredProceduresNames.GetUserByEmail, "Email", email);
+                await _dbAccessService.GetOneByParameter<User>(SqlQueries.GetUserByEmail, "Email", email);
             
             return userAddResult;
         }
@@ -92,7 +87,7 @@ public class UserRepository : IUserRepository
 
             userToUpdate.UserRole = newRole;
             var userUpdateResult =
-                await _dbAccessService.UpdateRecord<User>(StoredProceduresNames.UpdateUser, userToUpdate);
+                await _dbAccessService.UpdateRecord<User>(SqlQueries.UpdateUser, userToUpdate);
             return userUpdateResult > 0;
         }
         catch (Exception ex)
@@ -105,29 +100,47 @@ public class UserRepository : IUserRepository
     {
         try
         {
+            _logger.LogInformation("Updating user: {UserId}", id);
+
             var userToUpdate = await GetById(id);
             if (userToUpdate == null)
+            {
+                _logger.LogWarning("User not found for update: {UserId}", id);
                 return false;
+            }
 
+            
             userToUpdate.UserRole = entity.UserRole;
             userToUpdate.UserName = entity.UserName;
             userToUpdate.Email = entity.Email;
-            userToUpdate.Password = entity.Password;
+            userToUpdate.Password = entity.Password; 
+            userToUpdate.Gender = entity.Gender;
+            userToUpdate.Age = entity.Age;
+            userToUpdate.DateOfBirth = entity.DateOfBirth;
+            userToUpdate.Country = entity.Country;
+            userToUpdate.PhoneNumber = entity.PhoneNumber;
 
-            var userUpdateResult =
-                await _dbAccessService.UpdateRecord<User>(StoredProceduresNames.UpdateUser, userToUpdate);
+            _logger.LogInformation("Password in update: {Password}", userToUpdate.Password);
+
+            var userUpdateResult = await _dbAccessService.UpdateRecord<User>(SqlQueries.UpdateUser, userToUpdate);
+        
+            _logger.LogInformation("Update record result: {Result}", userUpdateResult);
+        
             return userUpdateResult > 0;
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error updating user: {UserId}", id);
             return false;
         }
     }
+    
+    
     public async Task<List<User>> GetAllUsers()
     {
         try
         {
-            var user = await _dbAccessService.GetRecords<User>(StoredProceduresNames.GetAllUsers);
+            var user = await _dbAccessService.GetRecords<User>(SqlQueries.GetAllUsers);
             return user;
         }
         catch (Exception ex)
@@ -139,7 +152,7 @@ public class UserRepository : IUserRepository
         {
             try
             {
-                var user = await _dbAccessService.DeleteRecordById(StoredProceduresNames.DeleteUser,  id);
+                var user = await _dbAccessService.DeleteRecordById(SqlQueries.DeleteUser,  id);
                 return true;
             }
             catch(Exception ex)
@@ -160,7 +173,20 @@ public class UserRepository : IUserRepository
 
     public async Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto)
     {
-        return await _dbAccessService.AddAnthrometry(anthropometrydto);
+        try
+        {
+            _logger.LogInformation("Starting AddAnthrometry for user {UserId}", anthropometrydto.UserId);
+        
+            var result = await _dbAccessService.AddAnthrometry(anthropometrydto);
+        
+            _logger.LogInformation("AddAnthrometry completed with result: {Result}", result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in AddAnthrometry for user {UserId}", anthropometrydto.UserId);
+            throw;
+        }
     }
 
     public async Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId)
@@ -206,5 +232,57 @@ public class UserRepository : IUserRepository
             return null;
         }
     }
+    public async Task<bool> UpdateUserHealthData(UpdateUserHealthDataDTO healthData)
+{
+    try
+    {
+        _logger.LogInformation("Updating health data for user: {UserId}", healthData.UserId);
+
+        
+        var existingUser = await GetById(healthData.UserId);
+        if (existingUser == null)
+        {
+            _logger.LogWarning("User not found: {UserId}", healthData.UserId);
+            return false;
+        }
+
+        existingUser.Age = healthData.Age;
+        existingUser.Gender = healthData.Gender;
+        existingUser.DateOfBirth = healthData.DateOfBirth;
+        existingUser.Country = healthData.Country ?? existingUser.Country;
+        existingUser.PhoneNumber = healthData.PhoneNumber ?? existingUser.PhoneNumber;
+
+        
+        var updateResult = await _dbAccessService.UpdateRecord<User>(SqlQueries.UpdateUser, existingUser);
+        
+        if (updateResult > 0 && (healthData.Height.HasValue || healthData.Weight.HasValue || healthData.SugarLevel.HasValue || healthData.BloodType.HasValue))
+        {
+          
+            var anthropometryDto = new AnthropometryDTO
+            {
+                UserId = healthData.UserId,
+                MeasuredAt = DateTime.UtcNow,
+                Height = healthData.Height ?? 0,
+                Weight = healthData.Weight ?? 0,
+                Sugar = healthData.SugarLevel ?? 0,
+                BloodType = healthData.BloodType
+            };
+
+            await AddAnthrometry(anthropometryDto);
+            _logger.LogInformation("Health data and anthropometry updated for user: {UserId}", healthData.UserId);
+        }
+        else
+        {
+            _logger.LogInformation("User data updated for user: {UserId}", healthData.UserId);
+        }
+
+        return updateResult > 0;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error updating health data for user: {UserId}", healthData.UserId);
+        return false;
+    }
+}
 }
 

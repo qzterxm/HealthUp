@@ -1,5 +1,6 @@
 ﻿using DataAccess.DataAccess;
 using DataAccess.Models;
+using DataAccess.Interfaces; 
 using WebApplication1.Interfaces;
 using WebApplication1.EmailSender;
 
@@ -8,25 +9,29 @@ namespace WebApplication1.Implementation
     public class PasswordResetService : IPasswordResetService
     {
         private readonly IDbAccessService _dbAccessService;
-        private readonly IUserService _userService;
+        private readonly IUserRepository _userRepository; 
         private readonly UseEmailSender _emailSender;
-        private readonly ILogger<PasswordResetService>  _logger;
+        private readonly ILogger<PasswordResetService> _logger;
 
-        public PasswordResetService(IDbAccessService dbAccessService, IUserService userService, UseEmailSender emailSender,  ILogger<PasswordResetService> logger)
+        public PasswordResetService(
+            IDbAccessService dbAccessService, 
+            IUserRepository userRepository, 
+            UseEmailSender emailSender,  
+            ILogger<PasswordResetService> logger)
         {
             _dbAccessService = dbAccessService;
-            _userService = userService;
+            _userRepository = userRepository; 
             _emailSender = emailSender;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<bool> SendPasswordResetCode(string email)
         {
-            var user = await _userService.GetUserByEmail(email);
+            var user = await _userRepository.GetUserByEmail(email); 
             if (user == null) 
             {
                 _logger.LogError($"User with email {email} not found");
-               return false;
+                return false;
             }
 
             var resetCode = new Random().Next(1000, 9999);
@@ -34,6 +39,7 @@ namespace WebApplication1.Implementation
 
             var entity = new PasswordResetCode
             {
+                Id = Guid.NewGuid(), 
                 UserId = user.Id,
                 ResetCode = resetCode,
                 ExpiresAt = expiration,
@@ -50,29 +56,72 @@ namespace WebApplication1.Implementation
 
         public async Task<Guid?> ValidateResetCode(Guid userId, int resetCode)
         {
-            var entity = await _dbAccessService.GetValidResetCode(userId, resetCode);
+            var entity = await _dbAccessService.GetValidResetCode(userId, resetCode, DateTime.UtcNow);
             return entity?.UserId;
         }
 
-        
-        public async Task<bool> CompletePasswordReset(Guid userId, string newPassword, int resetCode)
+        public async Task<bool> CompletePasswordReset(Guid userId, string hashedPassword, int resetCode)
         {
-            var user = await _userService.GetById(userId);
-            if (user == null) return false;
-
-            // TODO: валідація паролю та добавити процедуру
-            user.Password = newPassword;
-            await _userService.UpdateUser(userId, user);
-
-    
-            var code = await _dbAccessService.GetValidResetCode(userId, resetCode);
-            if (code != null)
+            try
             {
-                code.IsUsed = true;
-                await _dbAccessService.UpdateRecord("sp_Users_UpdatePasswordResetCode", code);
-            }
+                _logger.LogInformation("Completing password reset for user: {UserId}", userId);
+             
+                var user = await _userRepository.GetById(userId);
+                if (user == null)
+                {
+                    _logger.LogError("User not found: {UserId}", userId);
+                    return false;
+                }
 
-            return true;
+                _logger.LogInformation("User before update - Email: {Email}, Current Hash: {CurrentHash}", 
+                    user.Email, user.Password);
+
+                user.Password = hashedPassword;
+                
+                var updateResult = await _userRepository.UpdateUser(userId, user);
+                
+                _logger.LogInformation("Update result: {Result}", updateResult);
+
+                if (updateResult)
+                {
+                    
+                    await MarkResetCodeAsUsed(userId, resetCode);
+                    _logger.LogInformation("Password updated successfully for user: {UserId}", userId);
+                    
+                  
+                    var updatedUser = await _userRepository.GetById(userId);
+                    _logger.LogInformation("User after update - New Hash: {NewHash}", updatedUser?.Password);
+                }
+
+                return updateResult;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error completing password reset for user: {UserId}", userId);
+                return false;
+            }
+        }
+
+        public async Task MarkResetCodeAsUsed(Guid userId, int resetCode)
+        {
+            try
+            {
+                var currentTime = DateTime.UtcNow;
+                var validCode = await _dbAccessService.GetValidResetCode(userId, resetCode, currentTime);
+                
+                if (validCode != null)
+                {
+                    validCode.IsUsed = true;
+                    
+                    await _dbAccessService.UpdateRecord<PasswordResetCode>(
+                        "UPDATE PasswordResetCodes SET IsUsed = 1 WHERE Id = @Id", 
+                        validCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking reset code as used for user: {UserId}", userId);
+            }
         }
     }
 }
