@@ -77,25 +77,6 @@ public class UserRepository : IUserRepository
             return null;
         }
     }
-    public async Task<bool> ChangeUserRole(Guid id, UserRoles newRole)
-    {
-        try
-        {
-            var userToUpdate = await GetById(id);
-            if (userToUpdate == null)
-                return false;
-
-            userToUpdate.UserRole = newRole;
-            var userUpdateResult =
-                await _dbAccessService.UpdateRecord<User>(SqlQueries.UpdateUser, userToUpdate);
-            return userUpdateResult > 0;
-        }
-        catch (Exception ex)
-        {
-
-            return false;
-        }
-    }
     public async Task<bool> UpdateUser(Guid id, User entity)
     {
         try
@@ -194,7 +175,6 @@ public class UserRepository : IUserRepository
         return await _dbAccessService.GetAnthropometries(userId);
     }
     
-    
     public async Task<HealthMeasurementDTO?> GetLatestMeasurement(Guid userId)
     {
         try
@@ -284,5 +264,42 @@ public class UserRepository : IUserRepository
         return false;
     }
 }
+
+    public async Task<int> AddMedication(Medication medication)
+    {
+        try
+        {
+            _logger.LogInformation("Starting AddAnthrometry for user {UserId}", medication.UserId);
+            var result = await _dbAccessService.AddMedication(medication);
+
+            _logger.LogInformation("AddAnthrometry completed with result: {Result}", result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in AddAnthrometry for user {UserId}", medication.UserId);
+            throw;
+        }
+        
+    }
+
+    public async Task<List<Medication>> GetMedications(Guid userId)
+    {
+      return await _dbAccessService.GetMedications(userId);
+    }
+
+    public async Task<bool> DeleteMedication(Guid id)
+    {
+        try
+        {
+            var user = await _dbAccessService.DeleteRecordById(SqlQueries.DeleteMedication, id);
+            return user > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting medication with ID {Id}", id);
+            return false;
+        }
+    }
 }
 

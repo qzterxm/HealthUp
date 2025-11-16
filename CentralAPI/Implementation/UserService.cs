@@ -9,11 +9,13 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly ILogger <UserService> _logger;
+    private readonly IPasswordHelperService _passwordHelper;
 
-    public UserService(IUserRepository userRepository, ILogger <UserService> logger)
+    public UserService(IUserRepository userRepository, ILogger <UserService> logger,  IPasswordHelperService passwordHelper)
     {
         _userRepository = userRepository;
         _logger = logger;
+        _passwordHelper = passwordHelper;
     }
 
     public async Task<User?> GetById(Guid id)
@@ -43,15 +45,22 @@ public class UserService : IUserService
         var existingUser = await _userRepository.GetById(id);
         if (existingUser == null) return false;
             
-
         existingUser.Email = user.Email;
         existingUser.UserName = user.UserName;
         existingUser.UserRole = user.UserRole;
+        
+        existingUser.Gender = user.Gender;           
+        existingUser.Age = user.Age;                 
+        existingUser.DateOfBirth = user.DateOfBirth;   
+        existingUser.Country = user.Country;          
+        existingUser.PhoneNumber = user.PhoneNumber;  
+        existingUser.ProfilePictureUrl = user.ProfilePictureUrl; 
 
         if (!string.IsNullOrWhiteSpace(user.Password))
         {
-            existingUser.Password = user.Password;
+            existingUser.Password = _passwordHelper.HashPassword(user.Password);
         }
+
         return await _userRepository.UpdateUser(id, existingUser);
     }
     public async Task<bool> ChangeUserRole(Guid id, UserRoles newRole)

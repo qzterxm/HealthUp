@@ -7,12 +7,12 @@ namespace WebApplication1.Controllers;
 [Microsoft.AspNetCore.Components.Route("[controller]")]
 
 
-public class NoteController:  ControllerBase
+public class noteController:  ControllerBase
 {
     private readonly ILogger<fileController> _logger;
     private readonly IDbAccessService _dbAccessService;
 
-    public NoteController(ILogger<fileController> logger, IDbAccessService dbAccessService)
+    public noteController(ILogger<fileController> logger, IDbAccessService dbAccessService)
     {
         _logger = logger;
         _dbAccessService = dbAccessService;

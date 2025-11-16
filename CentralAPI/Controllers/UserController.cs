@@ -48,19 +48,6 @@ public class userController : ControllerBase
             : Ok(new { message = "User found", success = true, data = user.Adapt<User>() });
     }
 
-    [HttpGet("change-user-role")]
-    [AllowAnonymous]
-    public async Task<IActionResult> ChangeUserRole(Guid id)
-    {
-        if (id == Guid.Empty)
-            return BadRequest(new { message = "Invalid user ID", success = false, data = (object)null });
-
-        var result = await _userService.ChangeUserRole(id, UserRoles.Admin);
-        return result
-            ? Ok(new { message = $"User with ID {id} promoted to Admin", success = true, data = new { id, role = "Admin" } })
-            : NotFound(new { message = $"User with ID {id} not found or role change failed", success = false, data = (object)null });
-    }
-
     [HttpPut("update-user")]
     [AllowAnonymous]
     public async Task<IActionResult> UpdateUser([FromBody] User userDto)

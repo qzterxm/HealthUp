@@ -28,6 +28,23 @@
         public const string GetMeasurements = "SELECT * FROM HealthMeasurements WHERE UserId = @UserId ORDER BY MeasuredAt DESC;";
         public const string AddAnthropometry = "INSERT INTO HealthAnthropometry (Id, UserId, MeasuredAt, Weight, Height, Sugar, BloodType) VALUES (@Id, @UserId, @MeasuredAt, @Weight, @Height, @Sugar, @BloodType);";
         public const string GetAnthropometries = "SELECT * FROM HealthAnthropometry WHERE UserId = @UserId ORDER BY MeasuredAt DESC;";
+
+        public const string AddMedication =
+            "INSERT INTO Medications (Id, UserId, NameOfMedication, Dose, Frequency, TimesJson, CreatedAt, UpdatedAt)VALUES (@Id, @UserId, @NameOfMedication, @Dose, @Frequency, @TimesJson, @CreatedAt, @UpdatedAt);";
+        public const string GetMedications = "SELECT * FROM Medications WHERE UserId = @UserId ORDER BY CreatedAt DESC;";
+        public const string DeleteMedication = "DELETE FROM Medications WHERE Id = @Id;";
+        public const string UpdateMedication = @"
+    UPDATE Medications SET
+        NameOfMedication = @NameOfMedication,
+        Dose = @Dose,
+        TimesJson = @TimesJson,
+        WeekDaysJson = @WeekDaysJson,
+        Type = @Type,
+        Duration = @Duration,
+        UpdatedAt = @UpdatedAt
+    WHERE Id = @Id AND UserId = @UserId;";
         #endregion
+
+
     }
 }
