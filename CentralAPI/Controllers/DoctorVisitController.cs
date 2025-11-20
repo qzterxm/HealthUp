@@ -20,14 +20,13 @@ public class doctorvisitController : ControllerBase
         _fileService = fileService;
     }
     [HttpPost ("add-visit")]
-    public async Task<IActionResult> AddVisit([FromBody] DoctorVisitDTO visit)
+    public async Task<IActionResult> AddVisit([FromBody] DoctorVisit visit)
     {
         if (visit == null)
             return BadRequest(new { success = false, message = "Invalid visit data." });
 
         try
         {
-            visit.Id = Guid.NewGuid();
             if (visit.VisitedAt == default)
                 visit.VisitedAt = DateTime.UtcNow;
 

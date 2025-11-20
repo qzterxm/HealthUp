@@ -10,5 +10,6 @@ public class AnthropometryDTO
     public int? Height { get; set; }
     public double? Sugar { get; set; }
     public BloodType? BloodType { get; set; }
+    public int? Age { get; set; }
 
 }

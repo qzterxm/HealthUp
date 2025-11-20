@@ -35,8 +35,7 @@ public class calculationController : ControllerBase
 
         return Ok(new { message = "Measurement added", success = true, data = measurementDto });
     }
-    
-    [HttpPost("add-anthropometry")]
+[HttpPost("add-anthropometry")]
 public async Task<IActionResult> AddAnthropometry([FromBody] AnthropometryDTO dto)
 {
     try
@@ -77,13 +76,26 @@ public async Task<IActionResult> AddAnthropometry([FromBody] AnthropometryDTO dt
             dto.MeasuredAt = DateTime.UtcNow;
         }
 
-        _logger.LogInformation("Adding anthropometry for user {UserId}: Weight={Weight}, Height={Height}, Sugar={Sugar}, BloodType={BloodType}", 
-            dto.UserId, dto.Weight, dto.Height, dto.Sugar, dto.BloodType);
+        if (dto.Age.HasValue && dto.Age.Value > 0)
+        {
+            user.Age = dto.Age.Value;
+            await _userRepository.UpdateUser(dto.UserId, user);
+        }
+
+        _logger.LogInformation("Adding anthropometry for user {UserId}: Weight={Weight}, Height={Height}, Sugar={Sugar}, BloodType={BloodType}, Age={Age}", 
+            dto.UserId, dto.Weight, dto.Height, dto.Sugar, dto.BloodType, dto.Age);
 
         var result = await _userRepository.AddAnthrometry(dto);
         
         return result > 0
-            ? Ok(new { message = "Anthropometry added successfully", success = true, data = new { userId = dto.UserId } })
+            ? Ok(new { 
+                message = "Anthropometry added successfully", 
+                success = true, 
+                data = new { 
+                    userId = dto.UserId,
+                    ageUpdated = dto.Age.HasValue
+                } 
+            })
             : StatusCode(500, new { message = "Failed to add anthropometry", success = false, data = (object)null });
     }
     catch (Exception ex)
@@ -98,92 +110,83 @@ public async Task<IActionResult> AddAnthropometry([FromBody] AnthropometryDTO dt
 }
     
     
-[HttpGet("get-average")]
-public async Task<IActionResult> GetAverages([FromQuery] Guid userId)
-{
-    try
+    [HttpGet("get-average")]
+    public async Task<IActionResult> GetAverages([FromQuery] Guid userId)
     {
-        if (userId == Guid.Empty)
-            return BadRequest(new { message = "UserId is required", success = false, data = (object)null });
-
-        _logger.LogInformation("=== GetAverages START for user: {UserId} ===", userId);
-
-        var measurementsTask = _userRepository.GetMeasurements(userId);
-        var anthropometriesTask = _userRepository.GetAnthropometries(userId);
-
-        await Task.WhenAll(measurementsTask, anthropometriesTask);
-
-        var allMeasurements = measurementsTask.Result;
-        var allAnthropometries = anthropometriesTask.Result;
-        
-        _logger.LogInformation("Measurements count: {MeasurementsCount}", allMeasurements.Count);
-        _logger.LogInformation("Anthropometries count: {AnthropometryCount}", allAnthropometries.Count);
-
-        foreach (var anthro in allAnthropometries)
+        try
         {
-            _logger.LogInformation("Anthro Data - Weight: {Weight}, Height: {Height}, Sugar: {Sugar}, BloodType: {BloodType}", 
-                anthro.Weight, anthro.Height, anthro.Sugar, anthro.BloodType);
-        }
+            if (userId == Guid.Empty)
+                return BadRequest(new { message = "UserId is required", success = false, data = (object)null });
 
-        var latestAnthropometry = allAnthropometries.OrderByDescending(a => a.MeasuredAt).FirstOrDefault();
+            _logger.LogInformation("=== GetAverages START for user: {UserId} ===", userId);
+
+            var measurementsTask = _userRepository.GetMeasurements(userId);
+            var anthropometriesTask = _userRepository.GetAnthropometries(userId);
+            var userTask = _userRepository.GetById(userId);
+
+            await Task.WhenAll(measurementsTask, anthropometriesTask, userTask);
+
+            var allMeasurements = measurementsTask.Result;
+            var allAnthropometries = anthropometriesTask.Result;
+            var user = userTask.Result;
         
-        _logger.LogInformation("Latest anthropometry: {Latest}", 
-            latestAnthropometry != null ? 
-            $"Weight={latestAnthropometry.Weight}, Height={latestAnthropometry.Height}, Sugar={latestAnthropometry.Sugar}, BloodType={latestAnthropometry.BloodType}" : 
-            "NULL");
+            _logger.LogInformation("Measurements count: {MeasurementsCount}", allMeasurements.Count);
+            _logger.LogInformation("Anthropometries count: {AnthropometryCount}", allAnthropometries.Count);
 
-        double avgHR = allMeasurements.Any() ? allMeasurements.Average(m => m.HeartRate ?? 0) : 0;
-        double avgSystolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Systolic ?? 0) : 0;
-        double avgDiastolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Diastolic ?? 0) : 0;
-        
-        double latestHeight = latestAnthropometry?.Height ?? 0.0;
-        double latestWeight = latestAnthropometry?.Weight ?? 0.0;
-        double latestSugar = latestAnthropometry?.Sugar ?? 0.0;
-        
-        _logger.LogInformation("Calculated values - LatestHeight: {LatestHeight}, LatestWeight: {LatestWeight}, LatestSugar: {LatestSugar}", 
-            latestHeight, latestWeight, latestSugar);
+            var latestAnthropometry = allAnthropometries.OrderByDescending(a => a.MeasuredAt).FirstOrDefault();
+            double avgHR = allMeasurements.Any() ? allMeasurements.Average(m => m.HeartRate ?? 0) : 0;
+            double avgSystolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Systolic ?? 0) : 0;
+            double avgDiastolic = allMeasurements.Any() ? allMeasurements.Average(m => m.Diastolic ?? 0) : 0;
+            
+            double latestHeight = latestAnthropometry?.Height ?? 0.0;
+            double latestWeight = latestAnthropometry?.Weight ?? 0.0;
+            double latestSugar = latestAnthropometry?.Sugar ?? 0.0;
+            int? age = latestAnthropometry?.Age ?? user?.Age;
+            
+            _logger.LogInformation("Calculated values - LatestHeight: {LatestHeight}, LatestWeight: {LatestWeight}, LatestSugar: {LatestSugar}", 
+                latestHeight, latestWeight, latestSugar);
 
-        double imt = 0;
-        if (latestHeight > 0 && latestWeight > 0)
-        {
-            double heightInMeters = latestHeight / 100.0; 
-            imt = latestWeight / (heightInMeters * heightInMeters);
-            _logger.LogInformation("IMT calculation: {Weight} / ({Height}/100)^2 = {IMT}", 
-                latestWeight, latestHeight, imt);
-        }
-
-        string bloodGroupString = GetBloodGroupString(latestAnthropometry?.BloodType);
-
-        _logger.LogInformation("=== GetAverages END ===");
-
-        return Ok(new
-        {
-            message = "Average and latest data retrieved",
-            success = true,
-            data = new
+            double imt = 0;
+            if (latestHeight > 0 && latestWeight > 0)
             {
-                averageHeartRate = Math.Round(avgHR, 1),
-                averageSystolic = (int)Math.Round(avgSystolic), 
-                averageDiastolic = (int)Math.Round(avgDiastolic), 
-                latestHeartRate = allMeasurements.OrderByDescending(m => m.MeasuredAt).FirstOrDefault()?.HeartRate ?? 0,
-                latestHeight = latestHeight,
-                latestWeight = latestWeight, 
-                bloodGroup = bloodGroupString,
-                imt = Math.Round(imt, 1),
-                latestSugar = latestSugar
+                double heightInMeters = latestHeight / 100.0; 
+                imt = latestWeight / (heightInMeters * heightInMeters);
+                _logger.LogInformation("IMT calculation: {Weight} / ({Height}/100)^2 = {IMT}", 
+                    latestWeight, latestHeight, imt);
             }
-        });
+
+            string bloodGroupString = GetBloodGroupString(latestAnthropometry?.BloodType);
+
+            _logger.LogInformation("=== GetAverages END ===");
+
+            return Ok(new
+            {
+                message = "Average and latest data retrieved",
+                success = true,
+                data = new
+                {
+                    averageHeartRate = Math.Round(avgHR, 1),
+                    averageSystolic = (int)Math.Round(avgSystolic), 
+                    averageDiastolic = (int)Math.Round(avgDiastolic), 
+                    latestHeartRate = allMeasurements.OrderByDescending(m => m.MeasuredAt).FirstOrDefault()?.HeartRate ?? 0,
+                    latestHeight = latestHeight,
+                    latestWeight = latestWeight, 
+                    bloodGroup = bloodGroupString,
+                    imt = Math.Round(imt, 1),
+                    latestSugar = latestSugar
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetAverages for user {UserId}", userId);
+            return StatusCode(500, new { 
+                message = "An error occurred while retrieving data", 
+                success = false, 
+                data = (object)null 
+            });
+        }
     }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error in GetAverages for user {UserId}", userId);
-        return StatusCode(500, new { 
-            message = "An error occurred while retrieving data", 
-            success = false, 
-            data = (object)null 
-        });
-    }
-}
 private string GetBloodGroupString(BloodType? type)
 {
     return type switch

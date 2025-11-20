@@ -11,7 +11,6 @@ namespace DataAccess.Models
 
     public class Medication
     {
-        [JsonIgnore]
         public Guid Id { get; set; }
         public string UserId { get; set; }
         public string NameOfMedication { get; set; }
@@ -19,6 +18,8 @@ namespace DataAccess.Models
         public string WeekDaysJson { get; set; }
         public string Duration { get; set; }
         public string Type { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<MedicationTime> Times { get; set; } = new();
@@ -29,7 +30,11 @@ namespace DataAccess.Models
             set => Times = string.IsNullOrEmpty(value) ? new List<MedicationTime>() : JsonSerializer.Deserialize<List<MedicationTime>>(value);
         }
         
-        
+        public Medication()
+        {
+            StartDate = DateTime.Today;
+            Duration = "1 month";
+            WeekDaysJson = "[]";
+        }
     }
-    
 }

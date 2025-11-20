@@ -77,44 +77,52 @@ public class UserRepository : IUserRepository
             return null;
         }
     }
-    public async Task<bool> UpdateUser(Guid id, User entity)
+   public async Task<bool> UpdateUser(Guid id, User entity)
+{
+    try
     {
-        try
+        _logger.LogInformation("Updating user: {UserId}", id);
+
+        var userToUpdate = await GetById(id);
+        if (userToUpdate == null)
         {
-            _logger.LogInformation("Updating user: {UserId}", id);
-
-            var userToUpdate = await GetById(id);
-            if (userToUpdate == null)
-            {
-                _logger.LogWarning("User not found for update: {UserId}", id);
-                return false;
-            }
-
-            
-            userToUpdate.UserRole = entity.UserRole;
-            userToUpdate.UserName = entity.UserName;
-            userToUpdate.Email = entity.Email;
-            userToUpdate.Password = entity.Password; 
-            userToUpdate.Gender = entity.Gender;
-            userToUpdate.Age = entity.Age;
-            userToUpdate.DateOfBirth = entity.DateOfBirth;
-            userToUpdate.Country = entity.Country;
-            userToUpdate.PhoneNumber = entity.PhoneNumber;
-
-            _logger.LogInformation("Password in update: {Password}", userToUpdate.Password);
-
-            var userUpdateResult = await _dbAccessService.UpdateRecord<User>(SqlQueries.UpdateUser, userToUpdate);
-        
-            _logger.LogInformation("Update record result: {Result}", userUpdateResult);
-        
-            return userUpdateResult > 0;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating user: {UserId}", id);
+            _logger.LogWarning("User not found for update: {UserId}", id);
             return false;
         }
+
+        userToUpdate.UserRole = entity.UserRole;
+        userToUpdate.UserName = entity.UserName;
+        userToUpdate.Email = entity.Email;
+        userToUpdate.Gender = entity.Gender;
+        userToUpdate.Age = entity.Age;
+        userToUpdate.DateOfBirth = entity.DateOfBirth;
+        userToUpdate.Country = entity.Country;
+        userToUpdate.PhoneNumber = entity.PhoneNumber;
+        userToUpdate.ProfilePictureUrl = entity.ProfilePictureUrl;
+
+       
+        if (!string.IsNullOrEmpty(entity.Password))
+        {
+             
+             userToUpdate.Password = entity.Password;
+             _logger.LogInformation("Password updated for user {UserId}", id);
+        }
+        else 
+        {
+             _logger.LogInformation("Password NOT changed for user {UserId}", id);
+        }
+        
+
+        var userUpdateResult = await _dbAccessService.UpdateRecord<User>(SqlQueries.UpdateUser, userToUpdate);
+    
+        return userUpdateResult > 0;
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error updating user: {UserId}", id);
+        return false;
+    }
+}
     
     
     public async Task<List<User>> GetAllUsers()
@@ -299,6 +307,37 @@ public class UserRepository : IUserRepository
         {
             _logger.LogError(ex, "Error deleting medication with ID {Id}", id);
             return false;
+        }
+    }
+    
+    public async Task<int> AddSleepData(SleepDTO sleepDto)
+    {
+        try
+        {
+            _logger.LogInformation("Adding sleep data for user {UserId}", sleepDto.UserId);
+            
+            var result = await _dbAccessService.AddSleep(sleepDto);
+            
+            _logger.LogInformation("Sleep data added. Rows affected: {Result}", result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding sleep data for user {UserId}", sleepDto.UserId);
+            throw; 
+        }
+    }
+
+    public async Task<List<SleepDTO>> GetSleepData(Guid userId)
+    {
+        try
+        {
+            return await _dbAccessService.GetSleepRecords(userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving sleep data for user {UserId}", userId);
+            return new List<SleepDTO>();
         }
     }
 }

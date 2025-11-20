@@ -2,9 +2,8 @@
 using DataAccess.Enums;
 using DataAccess.Models;
 
-public class DoctorVisitDTO
+public class DoctorVisit
 {
-    [JsonIgnore]
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
     public string Specialist { get; set; } = string.Empty;

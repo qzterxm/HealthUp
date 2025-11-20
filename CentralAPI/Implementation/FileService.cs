@@ -99,7 +99,7 @@ namespace WebApplication1.Implementation
         }
         
        
-        public async Task<object?> HandleFileOperationAsync(Guid userId, FileOperationType operation, Guid? fileId = null, IFormFile? file = null)
+       public async Task<object?> HandleFileOperationAsync(Guid userId, FileOperationType operation, Guid? fileId = null, IFormFile? file = null, Guid? visitId = null) // <--- ДОДАНО visitId
         {
             switch (operation)
             {
@@ -121,11 +121,14 @@ namespace WebApplication1.Implementation
                         FileName = file.FileName,
                         ContentType = file.ContentType,
                         FileData = fileData,
-                        UploadedAt = DateTime.UtcNow
+                        UploadedAt = DateTime.UtcNow,
+                        VisitId = visitId // <--- ВАЖЛИВО: Присвоюємо отриманий VisitId
                     };
 
-           
                     await _dbAccessService.AddUserFile(newFile);
+                    
+                    _logger.LogInformation("File uploaded via HandleFileOperationAsync. Name: {Name}, VisitId: {VisitId}", newFile.FileName, newFile.VisitId);
+                    
                     return newFile;
 
                 case FileOperationType.Download:
@@ -165,6 +168,8 @@ namespace WebApplication1.Implementation
             var newFile = new UserFile
             {
                 Id = fileId ?? Guid.NewGuid(),
+                // УВАГА: Тут бажано б отримати UserId, але якщо логіка дозволяє null або береться з візиту пізніше - ок. 
+                // Але краще, щоб у UserFile завжди був UserId.
                 VisitId = visitId, 
                 FileName = file.FileName,
                 ContentType = file.ContentType,
@@ -172,10 +177,9 @@ namespace WebApplication1.Implementation
                 UploadedAt = DateTime.UtcNow
             };
 
-           
             await _dbAccessService.AddUserFile(newFile);
 
             return newFile;
-        }
+        }  
     }
 }

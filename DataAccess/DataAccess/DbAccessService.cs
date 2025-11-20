@@ -35,8 +35,8 @@ namespace DataAccess.DataAccess
         Task<List<UserNoteDTO>> GetUserNotes(Guid userId);
         Task<bool> DeleteUserNote(Guid userId, Guid noteId);
 
-        Task<Guid> AddDoctorVisit(DoctorVisitDTO visit);
-        Task<List<DoctorVisitDTO>> GetDoctorVisits(Guid userId);
+        Task<Guid> AddDoctorVisit(DoctorVisit visit);
+        Task<List<DoctorVisit>> GetDoctorVisits(Guid userId);
 
         Task<UserFile?> GetUserFileById(Guid fileId, Guid userId);
         Task<int> DeleteUserFileById(Guid fileId, Guid userId);
@@ -47,6 +47,9 @@ namespace DataAccess.DataAccess
         Task<List<Medication>> GetMedications(Guid userId);
         Task<int> UpdateMedication(Medication medication);
         Task<bool> DeleteMedication(Guid id);
+        
+        Task<int> AddSleep(SleepDTO sleepDto);
+        Task<List<SleepDTO>> GetSleepRecords(Guid userId);
     }
 
     public class DbAccessService : IDbAccessService
@@ -208,42 +211,61 @@ namespace DataAccess.DataAccess
             return await GetRecordsByParameters<HealthMeasurementDTO>(SqlQueries.GetMeasurements, parameters);
         }
 
-        public async Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto)
+    public async Task<int> AddAnthrometry(AnthropometryDTO anthropometrydto)
+{
+    try
+    {
+        var userCheckSql = "SELECT COUNT(1) FROM Users WHERE Id = @UserId";
+        using var checkConnection = new SqliteConnection(_connectionString);
+        await checkConnection.OpenAsync();
+        var userExists = await checkConnection.ExecuteScalarAsync<int>(userCheckSql, new { UserId = anthropometrydto.UserId.ToString().ToUpper() });
+     
+        if (userExists == 0)
         {
-            try
-            {
-                var userCheckSql = "SELECT COUNT(1) FROM Users WHERE Id = @UserId";
-                using var checkConnection = new SqliteConnection(_connectionString);
-                await checkConnection.OpenAsync();
-                var userExists = await checkConnection.ExecuteScalarAsync<int>(userCheckSql, new { UserId = anthropometrydto.UserId.ToString().ToUpper() });
-             
-                if (userExists == 0)
-                {
-                    throw new InvalidOperationException($"User with ID {anthropometrydto.UserId} not found");
-                }
-
-                var newId = Guid.NewGuid();
-                var parameters = new DynamicParameters();
-                parameters.Add("@Id", newId.ToString().ToUpper());
-                parameters.Add("@UserId", anthropometrydto.UserId.ToString().ToUpper());
-                parameters.Add("@MeasuredAt", anthropometrydto.MeasuredAt);
-                parameters.Add("@Weight", anthropometrydto.Weight);
-                parameters.Add("@Height", anthropometrydto.Height);
-                parameters.Add("@Sugar", anthropometrydto.Sugar);
-                parameters.Add("@BloodType", anthropometrydto.BloodType.HasValue ? (int?)anthropometrydto.BloodType : null);
-
-                using var connection = new SqliteConnection(_connectionString);
-                await connection.OpenAsync();
-                await connection.ExecuteAsync("PRAGMA foreign_keys = ON;");
-                var result = await connection.ExecuteAsync(SqlQueries.AddAnthropometry, parameters);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in AddAnthrometry for user {UserId}", anthropometrydto.UserId);
-                throw;
-            }
+            throw new InvalidOperationException($"User with ID {anthropometrydto.UserId} not found");
         }
+
+        int? ageToStore = anthropometrydto.Age;
+        if (!ageToStore.HasValue)
+        {
+            var getUserAgeSql = "SELECT Age FROM Users WHERE Id = @UserId";
+            var currentAge = await checkConnection.ExecuteScalarAsync<int?>(getUserAgeSql, new { UserId = anthropometrydto.UserId.ToString().ToUpper() });
+            ageToStore = currentAge;
+        }
+        else
+        {
+          
+            var updateUserAgeSql = "UPDATE Users SET Age = @Age WHERE Id = @UserId";
+            await checkConnection.ExecuteAsync(updateUserAgeSql, new 
+            { 
+                UserId = anthropometrydto.UserId.ToString().ToUpper(),
+                Age = ageToStore.Value
+            });
+        }
+
+        var newId = Guid.NewGuid();
+        var parameters = new DynamicParameters();
+        parameters.Add("@Id", newId.ToString().ToUpper());
+        parameters.Add("@UserId", anthropometrydto.UserId.ToString().ToUpper());
+        parameters.Add("@MeasuredAt", anthropometrydto.MeasuredAt);
+        parameters.Add("@Weight", anthropometrydto.Weight);
+        parameters.Add("@Height", anthropometrydto.Height);
+        parameters.Add("@Sugar", anthropometrydto.Sugar);
+        parameters.Add("@BloodType", anthropometrydto.BloodType.HasValue ? (int?)anthropometrydto.BloodType : null);
+        parameters.Add("@Age", ageToStore); // Додаємо вік до антропометрії
+
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        await connection.ExecuteAsync("PRAGMA foreign_keys = ON;");
+        var result = await connection.ExecuteAsync(SqlQueries.AddAnthropometry, parameters);
+        return result;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error in AddAnthrometry for user {UserId}", anthropometrydto.UserId);
+        throw;
+    }
+}
         public async Task<List<AnthropometryDTO>> GetAnthropometries(Guid userId)
         {
             try
@@ -338,7 +360,7 @@ namespace DataAccess.DataAccess
         }
         
 
-        public async Task<Guid> AddDoctorVisit(DoctorVisitDTO visit)
+        public async Task<Guid> AddDoctorVisit(DoctorVisit visit)
         {
             visit.Id = Guid.NewGuid();
             
@@ -357,9 +379,9 @@ namespace DataAccess.DataAccess
             return visit.Id;
         }
 
-        public async Task<List<DoctorVisitDTO>> GetDoctorVisits(Guid userId)
+        public async Task<List<DoctorVisit>> GetDoctorVisits(Guid userId)
         {
-            return await GetRecordsByParameters<DoctorVisitDTO>(SqlQueries.GetDoctorVisits,
+            return await GetRecordsByParameters<DoctorVisit>(SqlQueries.GetDoctorVisits,
                 new DynamicParameters(new { UserId = userId.ToString().ToUpper() }));
         }
         
@@ -409,44 +431,162 @@ namespace DataAccess.DataAccess
         }
         
 
-        public async Task<int> AddMedication(Medication medication)
+     public async Task<int> AddMedication(Medication medication)
+{
+    try
+    {
+        medication.Id = Guid.NewGuid();
+        medication.CreatedAt = DateTime.UtcNow;
+        medication.UpdatedAt = DateTime.UtcNow;
+
+        if (medication.StartDate == default)
         {
-            medication.Id = Guid.NewGuid();
-            medication.CreatedAt = DateTime.UtcNow;
-            medication.UpdatedAt = DateTime.UtcNow;
+            medication.StartDate = DateTime.Today;
+        }
+        
+        if (!medication.EndDate.HasValue)
+        {
+            medication.EndDate = CalculateEndDate(medication.Duration);
+        }
+        
+        medication.WeekDaysJson ??= "[]";
 
-            using var connection = new SqliteConnection(_connectionString);
-            await connection.OpenAsync();
-            const string sql = @"
-                INSERT INTO Medications (Id, UserId, NameOfMedication, Dose, TimesJson, WeekDaysJson, Type, Duration, CreatedAt, UpdatedAt) 
-                VALUES (@Id, @UserId, @NameOfMedication, @Dose, @TimesJson, @WeekDaysJson, @Type, @Duration, @CreatedAt, @UpdatedAt);";
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        
+        const string sql = @"
+            INSERT INTO Medications 
+            (Id, UserId, NameOfMedication, Dose, TimesJson, WeekDaysJson, Type, Duration, StartDate, EndDate, CreatedAt, UpdatedAt) 
+            VALUES 
+            (@Id, @UserId, @NameOfMedication, @Dose, @TimesJson, @WeekDaysJson, @Type, @Duration, @StartDate, @EndDate, @CreatedAt, @UpdatedAt);";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("@Id", medication.Id.ToString().ToUpper());
-            parameters.Add("@UserId", medication.UserId.ToString().ToUpper());
-            parameters.Add("@NameOfMedication", medication.NameOfMedication);
-            parameters.Add("@Dose", medication.Dose);
-            parameters.Add("@TimesJson", medication.TimesJson);
-            parameters.Add("@WeekDaysJson", medication.WeekDaysJson); // ❗️ Оновлено
-            parameters.Add("@Type", medication.Type);
-            parameters.Add("@Duration", medication.Duration);
-            parameters.Add("@CreatedAt", medication.CreatedAt);
-            parameters.Add("@UpdatedAt", medication.UpdatedAt);
+        var parameters = new DynamicParameters();
+        parameters.Add("@Id", medication.Id.ToString().ToUpper());
+        parameters.Add("@UserId", medication.UserId.ToString().ToUpper());
+        parameters.Add("@NameOfMedication", medication.NameOfMedication);
+        parameters.Add("@Dose", medication.Dose);
+        parameters.Add("@TimesJson", medication.TimesJson ?? "[]");
+        parameters.Add("@WeekDaysJson", medication.WeekDaysJson ?? "[]");
+        parameters.Add("@Type", medication.Type);
+        parameters.Add("@Duration", medication.Duration);
+        parameters.Add("@StartDate", medication.StartDate);
+        parameters.Add("@EndDate", medication.EndDate);
+        parameters.Add("@CreatedAt", medication.CreatedAt);
+        parameters.Add("@UpdatedAt", medication.UpdatedAt);
+
+        _logger.LogInformation("Adding medication with ID: {MedicationId}", medication.Id);
+        
+        var result = await connection.ExecuteAsync(sql, parameters);
+        
+        _logger.LogInformation("Medication added successfully. Rows affected: {RowsAffected}", result);
+        
+        return result;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error adding medication for user {UserId}", medication.UserId);
+        throw;
+    }
+}
+
+public async Task<List<Medication>> GetMedications(Guid userId)
+{
+    try
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        const string query = @"
+            SELECT * FROM Medications 
+            WHERE UserId = @UserId 
+            ORDER BY CreatedAt DESC";
             
-            return await connection.ExecuteAsync(sql, parameters);
-        }
+        var parameters = new { UserId = userId.ToString().ToUpper() };
 
-        public async Task<List<Medication>> GetMedications(Guid userId)
+        var results = await connection.QueryAsync<Medication>(query, parameters);
+        
+        _logger.LogInformation("Found {Count} medications for user {UserId}", results.Count(), userId);
+        
+        return results.ToList();
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error getting medications for user {UserId}", userId);
+        throw;
+    }
+}
+
+public async Task<int> UpdateMedication(Medication medication)
+{
+    try
+    {
+        medication.UpdatedAt = DateTime.UtcNow;
+
+      
+        if (!medication.EndDate.HasValue)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            await connection.OpenAsync();
-
-            const string query = "SELECT * FROM Medications WHERE UserId = @UserId";
-            var parameters = new { UserId = userId.ToString().ToUpper() };
-
-            var results = await connection.QueryAsync<Medication>(query, parameters);
-            return results.ToList();
+            medication.EndDate = CalculateEndDate(medication.Duration);
         }
+
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        
+        const string sql = @"
+            UPDATE Medications SET
+                NameOfMedication = @NameOfMedication,
+                Dose = @Dose,
+                TimesJson = @TimesJson,
+                WeekDaysJson = @WeekDaysJson,
+                Type = @Type,
+                Duration = @Duration,
+                StartDate = @StartDate,
+                EndDate = @EndDate,
+                UpdatedAt = @UpdatedAt
+            WHERE Id = @Id AND UserId = @UserId;";
+
+        var parameters = new DynamicParameters();
+        parameters.Add("@Id", medication.Id.ToString().ToUpper());
+        parameters.Add("@UserId", medication.UserId.ToString().ToUpper());
+        parameters.Add("@NameOfMedication", medication.NameOfMedication);
+        parameters.Add("@Dose", medication.Dose);
+        parameters.Add("@TimesJson", medication.TimesJson ?? "[]");
+        parameters.Add("@WeekDaysJson", medication.WeekDaysJson ?? "[]");
+        parameters.Add("@Type", medication.Type);
+        parameters.Add("@Duration", medication.Duration);
+        parameters.Add("@StartDate", medication.StartDate);
+        parameters.Add("@EndDate", medication.EndDate);
+        parameters.Add("@UpdatedAt", medication.UpdatedAt);
+        
+        _logger.LogInformation("Updating medication with ID: {MedicationId}", medication.Id);
+        
+        var result = await connection.ExecuteAsync(sql, parameters);
+        
+        _logger.LogInformation("Medication updated successfully. Rows affected: {RowsAffected}", result);
+        
+        return result;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error updating medication {MedicationId}", medication.Id);
+        throw;
+    }
+}
+
+private DateTime CalculateEndDate(string duration)
+{
+    var startDate = DateTime.Today;
+    return duration?.ToLower() switch
+    {
+        "1 week" => startDate.AddDays(7),
+        "2 weeks" => startDate.AddDays(14),
+        "1 month" => startDate.AddMonths(1),
+        "3 months" => startDate.AddMonths(3),
+        "6 months" => startDate.AddMonths(6),
+        "1 year" => startDate.AddYears(1),
+        "indefinite" => startDate.AddYears(10), 
+        _ => startDate.AddMonths(1) 
+    };
+}
 
         public async Task<bool> DeleteMedication(Guid id)
         {
@@ -459,34 +599,47 @@ namespace DataAccess.DataAccess
             int affected = await connection.ExecuteAsync(query, parameters);
             return affected > 0;
         }
-        public async Task<int> UpdateMedication(Medication medication)
+   
+        
+        public async Task<int> AddSleep(SleepDTO sleepDto)
         {
+            // Генеруємо ID, якщо його немає або він пустий
+            if (sleepDto.Id == Guid.Empty)
+            {
+                sleepDto.Id = Guid.NewGuid();
+            }
+
             using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
-            
-            const string sql = @"
-                UPDATE Medications SET
-                    NameOfMedication = @NameOfMedication,
-                    Dose = @Dose,
-                    TimesJson = @TimesJson,
-                    WeekDaysJson = @WeekDaysJson,
-                    Type = @Type,
-                    Duration = @Duration,
-                    UpdatedAt = @UpdatedAt
-                WHERE Id = @Id AND UserId = @UserId;";
 
             var parameters = new DynamicParameters();
-            parameters.Add("@Id", medication.Id.ToString().ToUpper());
-            parameters.Add("@UserId", medication.UserId.ToString().ToUpper());
-            parameters.Add("@NameOfMedication", medication.NameOfMedication);
-            parameters.Add("@Dose", medication.Dose);
-            parameters.Add("@TimesJson", medication.TimesJson);
-            parameters.Add("@WeekDaysJson", medication.WeekDaysJson);
-            parameters.Add("@Type", medication.Type);
-            parameters.Add("@Duration", medication.Duration);
-            parameters.Add("@UpdatedAt", medication.UpdatedAt);
-            
-            return await connection.ExecuteAsync(sql, parameters);
+            parameters.Add("@Id", sleepDto.Id.ToString().ToUpper());
+            parameters.Add("@UserId", sleepDto.UserId.ToString().ToUpper());
+            parameters.Add("@Date", sleepDto.Date);
+            parameters.Add("@StartTime", sleepDto.StartTime);
+            parameters.Add("@EndTime", sleepDto.EndTime);
+            parameters.Add("@TotalDurationMinutes", sleepDto.TotalDurationMinutes);
+            parameters.Add("@SleepScore", sleepDto.SleepScore);
+            parameters.Add("@SleepStatus", sleepDto.SleepStatus);
+
+            return await connection.ExecuteAsync(SqlQueries.AddSleep, parameters);
+        }
+        public async Task<List<SleepDTO>> GetSleepRecords(Guid userId)
+        {
+            try 
+            {
+                using var connection = new SqliteConnection(_connectionString);
+                await connection.OpenAsync();
+
+                var parameters = new { UserId = userId.ToString().ToUpper() };
+                var result = await connection.QueryAsync<SleepDTO>(SqlQueries.GetSleepByUserId, parameters);
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting sleep records for user {UserId}", userId);
+                throw;
+            }
         }
     }
-}
+} 

@@ -24,4 +24,7 @@ public interface IUserRepository
     Task<int> AddMedication (Medication medication);
     Task<List<Medication>> GetMedications(Guid userId);
     Task<bool> DeleteMedication(Guid id);
+    
+    Task<int> AddSleepData(SleepDTO sleepDto);
+    Task<List<SleepDTO>> GetSleepData(Guid userId);
 }

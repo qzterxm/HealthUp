@@ -56,9 +56,10 @@ public class fileController : ControllerBase
                 return BadRequest(new { success = false, message = "File is empty or missing" });
             }
 
-            _logger.LogInformation("Uploading file for user: {UserId}, File: {FileName}", userId, file.FileName);
+            _logger.LogInformation("Uploading file for user: {UserId}, File: {FileName}, VisitId: {VisitId}", userId, file.FileName, visitId);
 
-            var result = await _fileService.HandleFileOperationAsync(userId, FileOperationType.Upload, null, file);
+          
+            var result = await _fileService.HandleFileOperationAsync(userId, FileOperationType.Upload, null, file, visitId);
 
             return Ok(new { 
                 success = true, 
@@ -69,13 +70,10 @@ public class fileController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error uploading file for user {UserId}", userId);
-            return StatusCode(500, new { 
-                success = false, 
-                message = ex.Message 
-            });
+            return StatusCode(500, new { success = false, message = ex.Message });
         }
     }
-
+    
     [HttpGet("download")]
     public async Task<IActionResult> DownloadFile([FromQuery] Guid userId, [FromQuery] Guid fileId)
     {
