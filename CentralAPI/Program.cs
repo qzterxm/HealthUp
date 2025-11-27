@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Dapper;
 using DataAccess.DataAccess;
 using DataAccess.Implementation;
 using DataAccess.Interfaces;
@@ -21,11 +22,11 @@ IdentityModelEventSource.ShowPII = true;
 var builder = WebApplication.CreateBuilder(args);
 SQLitePCL.Batteries.Init();
 SQLitePCL.Batteries.Init();
-// Register type handlers
-Dapper.SqlMapper.AddTypeHandler(new GuidTypeHandler());
-Dapper.SqlMapper.AddTypeHandler(new NullableGuidTypeHandler());
-Dapper.SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
-Dapper.SqlMapper.AddTypeHandler(new NullableDateOnlyTypeHandler());
+
+SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
+SqlMapper.AddTypeHandler(new NullableDateOnlyTypeHandler());
+SqlMapper.AddTypeHandler(new GuidTypeHandler());
+SqlMapper.AddTypeHandler(new NullableGuidTypeHandler());
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(opts =>
 {
@@ -142,6 +143,14 @@ builder.Host.UseSerilog((context, configuration) =>
 });
 
 
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+});
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; 
+});
 
 // Build the application
 var app = builder.Build();
@@ -174,7 +183,7 @@ app.UseCors(x => x
     .AllowAnyHeader());
 
 
-app.UseHttpsRedirection();
+//.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 

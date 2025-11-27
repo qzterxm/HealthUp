@@ -47,7 +47,7 @@ public class fileController : ControllerBase
     }
 
     [HttpPost("upload")]
-    public async Task<IActionResult> UploadFile([FromQuery] Guid userId, IFormFile file, [FromQuery] Guid? visitId = null)
+    public async Task<IActionResult> UploadFile([FromQuery] Guid userId, IFormFile file, [FromQuery] Guid? visitId = null, [FromQuery] Guid? noteId = null)
     {
         try
         {
@@ -56,10 +56,9 @@ public class fileController : ControllerBase
                 return BadRequest(new { success = false, message = "File is empty or missing" });
             }
 
-            _logger.LogInformation("Uploading file for user: {UserId}, File: {FileName}, VisitId: {VisitId}", userId, file.FileName, visitId);
+            _logger.LogInformation("Uploading file for user: {UserId}, File: {FileName}, VisitId: {VisitId}, NoteId: {NoteId}", userId, file.FileName, visitId, noteId);
 
-          
-            var result = await _fileService.HandleFileOperationAsync(userId, FileOperationType.Upload, null, file, visitId);
+            var result = await _fileService.HandleFileOperationAsync(userId, FileOperationType.Upload, null, file, visitId, noteId);
 
             return Ok(new { 
                 success = true, 
@@ -153,7 +152,8 @@ public class fileController : ControllerBase
                 file.ContentType,
                 file.UploadedAt,
                 file.UserId,
-                file.VisitId
+                file.VisitId,
+                file.NoteId 
             };
 
             return Ok(new { 

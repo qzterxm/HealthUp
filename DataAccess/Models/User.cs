@@ -14,8 +14,7 @@ public class User
     public int Age { get; set; }
     public DateOnly?  DateOfBirth { get; set; }
     public string Country { get; set; }
-    [Phone]
-    public string PhoneNumber { get; set; }
+    public string? PhoneNumber { get; set; }
     public UserRoles UserRole { get; set; }
     public string? ProfilePictureUrl { get; set; }
 }

@@ -252,7 +252,7 @@ namespace DataAccess.DataAccess
         parameters.Add("@Height", anthropometrydto.Height);
         parameters.Add("@Sugar", anthropometrydto.Sugar);
         parameters.Add("@BloodType", anthropometrydto.BloodType.HasValue ? (int?)anthropometrydto.BloodType : null);
-        parameters.Add("@Age", ageToStore); // Додаємо вік до антропометрії
+        parameters.Add("@Age", ageToStore); 
 
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
@@ -337,6 +337,7 @@ namespace DataAccess.DataAccess
                 Id = note.Id.ToString().ToUpper(),
                 UserId = note.UserId.ToString().ToUpper(),
                 note.CreatedAt,
+                note.NoteTitle,
                 note.NoteText
             };
             return await connection.ExecuteAsync(SqlQueries.AddUserNote, parameters);
@@ -603,7 +604,6 @@ private DateTime CalculateEndDate(string duration)
         
         public async Task<int> AddSleep(SleepDTO sleepDto)
         {
-            // Генеруємо ID, якщо його немає або він пустий
             if (sleepDto.Id == Guid.Empty)
             {
                 sleepDto.Id = Guid.NewGuid();

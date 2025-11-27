@@ -20,7 +20,6 @@ namespace WebApplication1.Implementation
             _logger = logger;
         }
 
-        
         public async Task<UserFile?> UploadFile(Guid userId, IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -45,7 +44,6 @@ namespace WebApplication1.Implementation
 
             try
             {
-                
                 var rowsAffected = await _dbAccessService.AddUserFile(newFile);
 
                 if (rowsAffected > 0)
@@ -65,7 +63,7 @@ namespace WebApplication1.Implementation
 
         public async Task<UserFile?> DownloadFile(Guid userId, string fileName)
         {
-            try
+             try
             {
                 var parameters = new DynamicParameters(); 
                 parameters.Add("@UserId", userId);
@@ -82,8 +80,8 @@ namespace WebApplication1.Implementation
 
         public async Task<bool> DeleteFile(Guid userId, string fileName)
         {
-           
-            try
+             
+             try
             {
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
@@ -99,7 +97,7 @@ namespace WebApplication1.Implementation
         }
         
        
-       public async Task<object?> HandleFileOperationAsync(Guid userId, FileOperationType operation, Guid? fileId = null, IFormFile? file = null, Guid? visitId = null) // <--- ДОДАНО visitId
+       public async Task<object?> HandleFileOperationAsync(Guid userId, FileOperationType operation, Guid? fileId = null, IFormFile? file = null, Guid? visitId = null, Guid? noteId = null) 
         {
             switch (operation)
             {
@@ -122,12 +120,13 @@ namespace WebApplication1.Implementation
                         ContentType = file.ContentType,
                         FileData = fileData,
                         UploadedAt = DateTime.UtcNow,
-                        VisitId = visitId // <--- ВАЖЛИВО: Присвоюємо отриманий VisitId
+                        VisitId = visitId,
+                        NoteId = noteId 
                     };
 
                     await _dbAccessService.AddUserFile(newFile);
                     
-                    _logger.LogInformation("File uploaded via HandleFileOperationAsync. Name: {Name}, VisitId: {VisitId}", newFile.FileName, newFile.VisitId);
+                    _logger.LogInformation("File uploaded via HandleFileOperationAsync. Name: {Name}, VisitId: {VisitId}, NoteId: {NoteId}", newFile.FileName, newFile.VisitId, newFile.NoteId);
                     
                     return newFile;
 
@@ -168,8 +167,6 @@ namespace WebApplication1.Implementation
             var newFile = new UserFile
             {
                 Id = fileId ?? Guid.NewGuid(),
-                // УВАГА: Тут бажано б отримати UserId, але якщо логіка дозволяє null або береться з візиту пізніше - ок. 
-                // Але краще, щоб у UserFile завжди був UserId.
                 VisitId = visitId, 
                 FileName = file.FileName,
                 ContentType = file.ContentType,
