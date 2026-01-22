@@ -36,10 +36,13 @@ namespace DataAccess.DataAccess
         Task<UserFile?> GetUserFileById(Guid fileId, Guid userId);
         Task<int> DeleteUserFileById(Guid fileId, Guid userId);
         Task<List<UserFile>> GetUserFilesByUserId(Guid userId);
+        
+        // Методи для ліків
         Task<int> AddMedication(Medication medication);
         Task<List<Medication>> GetMedications(Guid userId);
         Task<int> UpdateMedication(Medication medication);
         Task<bool> DeleteMedication(Guid id);
+        
         Task<int> AddSleep(SleepDTO sleepDto);
         Task<List<SleepDTO>> GetSleepRecords(Guid userId);
     }
@@ -62,10 +65,10 @@ namespace DataAccess.DataAccess
 
         public string? GetConnectionString() => _connectionString;
 
-        // --- УНІВЕРСАЛЬНИЙ МЕТОД ПІДКЛЮЧЕННЯ (ВИПРАВЛЕНО) ---
+        // --- УНІВЕРСАЛЬНИЙ МЕТОД ПІДКЛЮЧЕННЯ ---
         private NpgsqlConnection CreateConnection()
         {
-            return new NpgsqlConnection(_connectionString); // Тільки NpgsqlConnection!
+            return new NpgsqlConnection(_connectionString);
         }
 
         public async Task InitDatabase()
@@ -79,7 +82,7 @@ namespace DataAccess.DataAccess
         {
             try
             {
-                using var connection = CreateConnection(); // Використовує Npgsql
+                using var connection = CreateConnection();
                 var result = await connection.QueryAsync<TResult>(sqlQuery);
                 return result.ToList();
             }
@@ -94,7 +97,7 @@ namespace DataAccess.DataAccess
         {
             try
             {
-                using var connection = CreateConnection(); // Використовує Npgsql
+                using var connection = CreateConnection();
                 var result = await connection.QueryAsync<TResult>(sqlQuery, parameters);
                 return result.ToList();
             }
@@ -109,7 +112,7 @@ namespace DataAccess.DataAccess
         {
             try
             {
-                using var connection = CreateConnection(); // Використовує Npgsql
+                using var connection = CreateConnection();
                 return await connection.ExecuteAsync(sqlQuery, entity);
             }
             catch (Exception e)
@@ -123,7 +126,7 @@ namespace DataAccess.DataAccess
         {
             try
             {
-                using var connection = CreateConnection(); // Використовує Npgsql
+                using var connection = CreateConnection();
                 return await connection.ExecuteAsync(sqlQuery, entity);
             }
             catch (Exception e)
@@ -173,10 +176,13 @@ namespace DataAccess.DataAccess
             try
             {
                 using var connection = CreateConnection();
-                
+        
+                // ВАЖЛИВО: Перетворюємо UserId в Guid для перевірки
+                var userIdGuid = Guid.Parse(anthropometrydto.UserId.ToString());
+
                 var userCheckSql = "SELECT COUNT(1) FROM Users WHERE Id = @UserId";
-                var userExists = await connection.ExecuteScalarAsync<int>(userCheckSql, new { UserId = anthropometrydto.UserId });
-            
+                var userExists = await connection.ExecuteScalarAsync<int>(userCheckSql, new { UserId = userIdGuid });
+    
                 if (userExists == 0)
                 {
                     throw new InvalidOperationException($"User with ID {anthropometrydto.UserId} not found");
@@ -186,17 +192,17 @@ namespace DataAccess.DataAccess
                 if (!ageToStore.HasValue)
                 {
                     var getUserAgeSql = "SELECT Age FROM Users WHERE Id = @UserId";
-                    ageToStore = await connection.ExecuteScalarAsync<int?>(getUserAgeSql, new { UserId = anthropometrydto.UserId });
+                    ageToStore = await connection.ExecuteScalarAsync<int?>(getUserAgeSql, new { UserId = userIdGuid });
                 }
                 else
                 {
                     var updateUserAgeSql = "UPDATE Users SET Age = @Age WHERE Id = @UserId";
-                    await connection.ExecuteAsync(updateUserAgeSql, new { UserId = anthropometrydto.UserId, Age = ageToStore.Value });
+                    await connection.ExecuteAsync(updateUserAgeSql, new { UserId = userIdGuid, Age = ageToStore.Value });
                 }
 
                 var parameters = new DynamicParameters();
-                parameters.Add("@Id", Guid.NewGuid());
-                parameters.Add("@UserId", anthropometrydto.UserId);
+                parameters.Add("@Id", Guid.NewGuid()); // Генеруємо новий Guid
+                parameters.Add("@UserId", userIdGuid); // Використовуємо Guid
                 parameters.Add("@MeasuredAt", anthropometrydto.MeasuredAt);
                 parameters.Add("@Weight", anthropometrydto.Weight);
                 parameters.Add("@Height", anthropometrydto.Height);
@@ -308,18 +314,43 @@ namespace DataAccess.DataAccess
              return await GetRecordsByParameters<UserFile>(SqlQueries.GetUserFilesByUserId, parameters);
         }
 
+        // --- MEDICATION METHODS (ВИПРАВЛЕНО) ---
+
         public async Task<int> AddMedication(Medication medication)
         {
-            medication.Id = Guid.NewGuid();
+            if (medication.Id == Guid.Empty) 
+            {
+                medication.Id = Guid.NewGuid();
+            }
+            
             medication.CreatedAt = DateTime.UtcNow;
             medication.UpdatedAt = DateTime.UtcNow;
             if (medication.StartDate == default) medication.StartDate = DateTime.Today;
-            if (!medication.EndDate.HasValue) medication.EndDate = CalculateEndDate(medication.Duration);
+            if (medication.EndDate == null) medication.EndDate = CalculateEndDate(medication.Duration);
             medication.WeekDaysJson ??= "[]";
+            medication.TimesJson ??= "[]";
+
+            var parameters = new DynamicParameters();
+            // Передаємо Guid напряму, бо в моделі вони вже Guid
+            parameters.Add("@Id", medication.Id); 
+            parameters.Add("@UserId", medication.UserId); 
             
-            return await AddRecord(SqlQueries.AddMedication, medication);
+            parameters.Add("@NameOfMedication", medication.NameOfMedication);
+            parameters.Add("@Dose", medication.Dose);
+            parameters.Add("@TimesJson", medication.TimesJson);
+            parameters.Add("@WeekDaysJson", medication.WeekDaysJson);
+            parameters.Add("@Type", medication.Type.ToString()); 
+            parameters.Add("@Duration", medication.Duration);
+            parameters.Add("@StartDate", medication.StartDate);
+            parameters.Add("@EndDate", medication.EndDate);
+            parameters.Add("@CreatedAt", medication.CreatedAt);
+            parameters.Add("@UpdatedAt", medication.UpdatedAt);
+
+            using var connection = CreateConnection();
+            return await connection.ExecuteAsync(SqlQueries.AddMedication, parameters);
         }
 
+        // Цей метод був пропущений, тепер додано
         public async Task<List<Medication>> GetMedications(Guid userId)
         {
             var parameters = new DynamicParameters();
@@ -330,9 +361,30 @@ namespace DataAccess.DataAccess
         public async Task<int> UpdateMedication(Medication medication)
         {
             medication.UpdatedAt = DateTime.UtcNow;
-            if (!medication.EndDate.HasValue) medication.EndDate = CalculateEndDate(medication.Duration);
+            if (medication.EndDate == null) medication.EndDate = CalculateEndDate(medication.Duration);
+
+            var parameters = new DynamicParameters();
+            // Передаємо Guid напряму
+            parameters.Add("@Id", medication.Id);       
+            parameters.Add("@UserId", medication.UserId); 
             
-            return await UpdateRecord(SqlQueries.UpdateMedication, medication);
+            parameters.Add("@NameOfMedication", medication.NameOfMedication);
+            parameters.Add("@Dose", medication.Dose);
+            parameters.Add("@TimesJson", medication.TimesJson);
+            parameters.Add("@WeekDaysJson", medication.WeekDaysJson);
+            parameters.Add("@Type", medication.Type.ToString());
+            parameters.Add("@Duration", medication.Duration);
+            parameters.Add("@StartDate", medication.StartDate);
+            parameters.Add("@EndDate", medication.EndDate);
+            parameters.Add("@UpdatedAt", medication.UpdatedAt);
+
+            using var connection = CreateConnection();
+            return await connection.ExecuteAsync(SqlQueries.UpdateMedication, parameters);
+        }
+
+        public async Task<bool> DeleteMedication(Guid id)
+        {
+            return await DeleteRecordById(SqlQueries.DeleteMedication, id) > 0;
         }
 
         private DateTime CalculateEndDate(string duration)
@@ -350,12 +402,7 @@ namespace DataAccess.DataAccess
                 _ => startDate.AddMonths(1) 
             };
         }
-
-        public async Task<bool> DeleteMedication(Guid id)
-        {
-            return await DeleteRecordById(SqlQueries.DeleteMedication, id) > 0;
-        }
-        
+      
         public async Task<int> AddSleep(SleepDTO sleepDto)
         {
             if (sleepDto.Id == Guid.Empty) sleepDto.Id = Guid.NewGuid();
