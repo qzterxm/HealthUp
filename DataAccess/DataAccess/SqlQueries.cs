@@ -85,7 +85,11 @@
         public const string AddAnthropometry = @"INSERT INTO HealthAnthropometry (Id, UserId, MeasuredAt, Weight, Height, Sugar, BloodType, Age) VALUES (@Id, @UserId, @MeasuredAt, @Weight, @Height, @Sugar, @BloodType, @Age);";
         public const string GetAnthropometries = @"SELECT * FROM HealthAnthropometry WHERE UserId = @UserId ORDER BY MeasuredAt DESC;";
        
-        public const string AddMedication = @"INSERT INTO Medications (Id, UserId, NameOfMedication, Dose, TimesJson, WeekDaysJson, Type, Duration, StartDate, EndDate, CreatedAt, UpdatedAt) VALUES (@Id, @UserId, @NameOfMedication, @Dose, @TimesJson, @WeekDaysJson, @Type, @Duration, @StartDate, @EndDate, @CreatedAt, @UpdatedAt);";
+        public const string AddMedication = @"
+    INSERT INTO Medications 
+    (Id, UserId, NameOfMedication, Dose, TimesJson, WeekDaysJson, Type, Duration, StartDate, EndDate, CreatedAt, UpdatedAt) 
+    VALUES 
+    (@Id::uuid, @UserId::uuid, @NameOfMedication, @Dose, @TimesJson, @WeekDaysJson, @Type, @Duration, @StartDate, @EndDate, @CreatedAt, @UpdatedAt);";
         public const string GetMedications = @"SELECT * FROM Medications WHERE UserId = @UserId ORDER BY CreatedAt DESC;";
         public const string UpdateMedication = @"UPDATE Medications SET NameOfMedication = @NameOfMedication, Dose = @Dose, TimesJson = @TimesJson, WeekDaysJson = @WeekDaysJson, Type = @Type, Duration = @Duration, StartDate = @StartDate, EndDate = @EndDate, UpdatedAt = @UpdatedAt WHERE Id = @Id AND UserId = @UserId;";
         public const string DeleteMedication = "DELETE FROM Medications WHERE Id = @Id;";
