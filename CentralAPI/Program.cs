@@ -2,8 +2,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Dapper;
-using DataAccess.DataAccess;
-using DataAccess.Implementation;
+using DataAccess.DataAccess; // Перевір, щоб тут не дублювались namespace
+using DataAccess.Implementation; // Якщо твої репозиторії тут
 using DataAccess.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
@@ -14,48 +14,35 @@ using Microsoft.IdentityModel.Logging;
 using WebApplication1.EmailSender;
 using WebApplication1.Implementation;
 using WebApplication1.Interfaces;
-using SQLitePCL;
-using DataAccess.DataAccess;
+// using SQLitePCL;  <-- ВИДАЛЯЄМО ЦЕ
 
 IdentityModelEventSource.ShowPII = true;
 
 var builder = WebApplication.CreateBuilder(args);
-SQLitePCL.Batteries.Init();
-SQLitePCL.Batteries.Init();
 
+// --- Dapper Type Handlers ---
 SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
 SqlMapper.AddTypeHandler(new NullableDateOnlyTypeHandler());
-SqlMapper.AddTypeHandler(new GuidTypeHandler());
-SqlMapper.AddTypeHandler(new NullableGuidTypeHandler());
+// GuidTypeHandler ВИДАЛЯЄМО - PostgreSQL вміє працювати з UUID нативно!
+
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(opts =>
 {
-    // конвертер, який дозволяє серіалізувати/десеріалізувати enum як рядок
     opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     opts.JsonSerializerOptions.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
 }); 
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
-
-// Configure JWT authentication
+// Configure JWT & Swagger
 builder.Services.AddSwaggerGen(options =>
 {
-    // This ensures the OpenAPI 3.0 specification version is set
     options.SwaggerDoc("v1", new OpenApiInfo 
     { 
         Title = "HealthUp API", 
-        Version = "v1",
-        Description = "API for HealthUp application",
-        Contact = new OpenApiContact
-        {
-            Name = "Your Name",
-            Email = "contact@healthup.com"
-        }
+        Version = "v1"
     });
 
-    // Add JWT Bearer token support
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -67,13 +54,10 @@ builder.Services.AddSwaggerGen(options =>
     });
     
     options.OperationFilter<AuthResponsesOperationFilter>();
-
-    // This ensures the OpenAPI specification version is included in the document
     options.DocumentFilter<OpenApiVersionFilter>();
 });
 
 builder.Services.AddAuthorization();
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -88,41 +72,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ClockSkew = TimeSpan.Zero,
         };
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-               
-                var accessToken = context.Request.Query["access_token"];
-                if (!string.IsNullOrEmpty(accessToken))
-                    context.Token = accessToken;
-                return Task.CompletedTask;
-            }
-        };
-        options.Events.OnAuthenticationFailed = ctx =>
-        {
-          
-            Console.Error.WriteLine($"{ctx.Exception}, JWT auth failed");
-            return Task.CompletedTask;
-        };
     });
 
-
-// Register services
+// --- Register services ---
 builder.Services.AddScoped<IDbAccessService, DbAccessService>();
 
-//users & auth
+// Users & Auth
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICalculationService, CalculationService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 
-//helpers
+// Helpers
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHelperService, PasswordHelperService>();
 
-//File
+// File
 builder.Services.AddScoped<IFileService, FileService>();
 
 // EmailSender
@@ -131,7 +97,7 @@ builder.Services.AddSingleton(emailSettings);
 builder.Services.AddTransient<IEmailService, EmailSender>();
 builder.Services.AddTransient<UseEmailSender>();
 
-// Configure Serilog
+// Serilog
 Log.Logger = new LoggerConfiguration()
     .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
     .WriteTo.Console()
@@ -142,35 +108,38 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration);
 });
 
-
-builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
-{
-});
-
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
     serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; 
 });
 
-// Build the application
 var app = builder.Build();
 
-// SEED DATA
+// --- INITIALIZATION BLOCK (Виправлено) ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
 
     try
     {
+        // 1. Отримуємо сервіс через Інтерфейс
         var dbAccessService = services.GetRequiredService<IDbAccessService>();
-        var seeder = new DataSeeder(dbAccessService);
+        
+        // 2. СПОЧАТКУ створюємо таблиці (важливо!)
+        logger.LogInformation("Initializing database tables...");
+        await dbAccessService.InitDatabase(); 
 
+        // 3. ПОТІМ засіваємо дані (Адмін)
+        logger.LogInformation("Seeding data...");
+        var seeder = new DataSeeder(dbAccessService);
         await seeder.Seed();
+        
+        logger.LogInformation("Database initialization completed.");
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
+        logger.LogError(ex, "An error occurred while initializing the database.");
     }
 }
 
@@ -182,13 +151,7 @@ app.UseCors(x => x
     .AllowAnyMethod()
     .AllowAnyHeader());
 
-
-//.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-var audience = builder.Configuration["JwtSettings:Audience"];
-
-
 app.Run();
-

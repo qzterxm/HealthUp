@@ -26,6 +26,7 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -85,6 +86,10 @@
             "MimeKit": {
               "target": "Package",
               "version": "[4.14.0, )"
+            },
+            "Npgsql": {
+              "target": "Package",
+              "version": "[10.0.1, )"
             },
             "Serilog": {
               "target": "Package",
@@ -172,6 +177,7 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -228,9 +234,9 @@
               "target": "Package",
               "version": "[8.13.0, )"
             },
-            "SQLitePCLRaw.bundle_e_sqlite3": {
+            "Npgsql": {
               "target": "Package",
-              "version": "[3.0.2, )"
+              "version": "[10.0.1, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -243,10 +249,6 @@
             "Swashbuckle.AspNetCore.Filters": {
               "target": "Package",
               "version": "[8.0.0, )"
-            },
-            "System.Data.SQLite": {
-              "target": "Package",
-              "version": "[2.0.2, )"
             },
             "System.IdentityModel.Tokens.Jwt": {
               "target": "Package",
