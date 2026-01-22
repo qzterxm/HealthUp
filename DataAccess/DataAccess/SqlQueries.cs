@@ -2,99 +2,64 @@
 {
     public static class SqlQueries
     {
-        // 👇 ОСЬ ЦЬОГО НЕ ВИСТАЧАЛО
-            public const string UserDbSchema = @"
-        CREATE TABLE IF NOT EXISTS Users (
-            Id UUID PRIMARY KEY, 
-            Email TEXT, UserName TEXT, Password TEXT, 
-            Gender INTEGER, Age INTEGER, 
-            DateOfBirth DATE,  -- <--- БУЛО TIMESTAMP, СТАЛО DATE
-            Country TEXT, PhoneNumber TEXT, UserRole INTEGER, ProfilePictureUrl TEXT
-        );
-            CREATE TABLE IF NOT EXISTS HealthMeasurements (
-                Id UUID PRIMARY KEY, 
-                UserId UUID, 
-                MeasuredAt TIMESTAMP, 
-                Systolic INTEGER, Diastolic INTEGER, HeartRate INTEGER
-            );
-
-            CREATE TABLE IF NOT EXISTS HealthAnthropometry (
-                Id UUID PRIMARY KEY, 
-                UserId UUID, 
-                MeasuredAt TIMESTAMP, 
-                Weight REAL, Height REAL, Sugar REAL, BloodType INTEGER, Age INTEGER
-            );
-
-            CREATE TABLE IF NOT EXISTS Medications (
-                Id UUID PRIMARY KEY, UserId UUID, NameOfMedication TEXT, Dose TEXT, 
-                TimesJson TEXT, WeekDaysJson TEXT, Type TEXT, Duration TEXT, 
-                StartDate TIMESTAMP, EndDate TIMESTAMP, CreatedAt TIMESTAMP, UpdatedAt TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS Sleep (
-                Id UUID PRIMARY KEY, UserId UUID, Date TIMESTAMP, StartTime TIMESTAMP, EndTime TIMESTAMP, 
-                TotalDurationMinutes INTEGER, SleepScore INTEGER, SleepStatus TEXT
-            );
-
-            CREATE TABLE IF NOT EXISTS UserNotes (
-                Id UUID PRIMARY KEY, UserId UUID, CreatedAt TIMESTAMP, NoteText TEXT, NoteTitle TEXT
-            );
-
-            CREATE TABLE IF NOT EXISTS DoctorVisits (
-                Id UUID PRIMARY KEY, UserId UUID, Specialist TEXT, VisitType TEXT, 
-                Diagnosis TEXT, Prescription TEXT, VisitedAt TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS UserFiles (
-                Id UUID PRIMARY KEY, UserId UUID, FileName TEXT, ContentType TEXT, 
-                FileData BYTEA, -- Важливо: BYTEA для Postgres замість BLOB
-                UploadedAt TIMESTAMP, VisitId UUID, NoteId UUID
-            );
-
-            CREATE TABLE IF NOT EXISTS PasswordResetCodes (
-                Id UUID PRIMARY KEY, UserId UUID, ResetCode INTEGER, ExpiresAt TIMESTAMP, IsUsed BOOLEAN
-            );
-        ";
+        public const string UserDbSchema = @"... (ваш існуючий код схеми, не чіпаємо) ...";
         
-        // ... Далі йдуть твої існуючі запити (без змін) ...
+        // --- USERS ---
         public const string GetAllUsers = "SELECT * FROM Users;";
-        public const string CreateUser = "INSERT INTO Users (Id, Email, UserName, Password, Gender, Age, DateOfBirth, Country, PhoneNumber, UserRole) VALUES (@Id, @Email, @UserName, @Password, @Gender, @Age, @DateOfBirth, @Country, @PhoneNumber, @UserRole);";
-        public const string GetUserById = "SELECT * FROM Users WHERE Id = @Id;";
-        public const string UpdateUser = @"UPDATE Users SET Email = @Email, UserName = @UserName, Gender = @Gender, Age = @Age, DateOfBirth = @DateOfBirth, Country = @Country, PhoneNumber = @PhoneNumber, UserRole = @UserRole, ProfilePictureUrl = @ProfilePictureUrl WHERE Id = @Id;";
-        public const string DeleteUser = "DELETE FROM Users WHERE Id = @Id;";
+        // Додаємо ::uuid для ID у Users
+        public const string CreateUser = "INSERT INTO Users (Id, Email, UserName, Password, Gender, Age, DateOfBirth, Country, PhoneNumber, UserRole) VALUES (@Id::uuid, @Email, @UserName, @Password, @Gender, @Age, @DateOfBirth, @Country, @PhoneNumber, @UserRole);";
+        public const string GetUserById = "SELECT * FROM Users WHERE Id = @Id::uuid;";
+        public const string UpdateUser = @"UPDATE Users SET Email = @Email, UserName = @UserName, Gender = @Gender, Age = @Age, DateOfBirth = @DateOfBirth, Country = @Country, PhoneNumber = @PhoneNumber, UserRole = @UserRole, ProfilePictureUrl = @ProfilePictureUrl WHERE Id = @Id::uuid;";
+        public const string DeleteUser = "DELETE FROM Users WHERE Id = @Id::uuid;";
         public const string GetUserByEmail = "SELECT * FROM Users WHERE Email = @Email;";
-        
-        public const string AddPasswordResetCode = "INSERT INTO PasswordResetCodes (Id, UserId, ResetCode, ExpiresAt, IsUsed) VALUES (@Id, @UserId, @ResetCode, @ExpiresAt, false);"; // Changed 0 to false for Postgres
-        public const string GetValidPasswordResetCode = "SELECT * FROM PasswordResetCodes WHERE UserId = @UserId AND ResetCode = @ResetCode AND ExpiresAt > @CurrentTime AND IsUsed = false;"; 
-        public const string UpdatePasswordResetCode = "UPDATE PasswordResetCodes SET IsUsed = true WHERE Id = @Id;";
+        public const string UpdateUserHealthData = @"UPDATE Users SET Age = @Age, Gender = @Gender, DateOfBirth = @DateOfBirth, Country = @Country, PhoneNumber = @PhoneNumber WHERE Id = @Id::uuid;";
+
+        // --- PASSWORD RESET ---
+        public const string AddPasswordResetCode = "INSERT INTO PasswordResetCodes (Id, UserId, ResetCode, ExpiresAt, IsUsed) VALUES (@Id::uuid, @UserId::uuid, @ResetCode, @ExpiresAt, false);"; 
+        public const string GetValidPasswordResetCode = "SELECT * FROM PasswordResetCodes WHERE UserId = @UserId::uuid AND ResetCode = @ResetCode AND ExpiresAt > @CurrentTime AND IsUsed = false;"; 
+        public const string UpdatePasswordResetCode = "UPDATE PasswordResetCodes SET IsUsed = true WHERE Id = @Id::uuid;";
        
+        // --- FILES ---
+        public const string GetUserFilesByUserId = "SELECT * FROM UserFiles WHERE UserId = @UserId::uuid ORDER BY UploadedAt DESC;";
+        public const string AddUserFile = "INSERT INTO UserFiles (Id, UserId, FileName, ContentType, FileData, UploadedAt, VisitId, NoteId) VALUES (@Id::uuid, @UserId::uuid, @FileName, @ContentType, @FileData, @UploadedAt, @VisitId::uuid, @NoteId::uuid);";
+        public const string GetUserFile = "SELECT * FROM UserFiles WHERE Id = @Id::uuid;";
+        public const string DeleteUserFile = "DELETE FROM UserFiles WHERE Id = @Id::uuid;";
         
-        public const string GetUserFilesByUserId = "SELECT * FROM UserFiles WHERE UserId = @UserId ORDER BY UploadedAt DESC;";
-        public const string AddUserFile = "INSERT INTO UserFiles (Id, UserId, FileName, ContentType, FileData, UploadedAt, VisitId, NoteId) VALUES (@Id, @UserId, @FileName, @ContentType, @FileData, @UploadedAt, @VisitId, @NoteId);";
-        public const string GetUserFile = "SELECT * FROM UserFiles WHERE Id = @Id;";
-        public const string DeleteUserFile = "DELETE FROM UserFiles WHERE Id = @Id;";
-        public const string GetUserNotes = "SELECT * FROM UserNotes WHERE UserId = @UserId ORDER BY CreatedAt DESC;";
-        public const string AddUserNote = @"INSERT INTO UserNotes (Id, UserId, CreatedAt, NoteText, NoteTitle) VALUES (@Id, @UserId, @CreatedAt, @NoteText, @NoteTitle);";
-        public const string DeleteUserNote = "DELETE FROM UserNotes WHERE Id = @Id AND UserId = @UserId;";
-        public const string AddDoctorVisit = "INSERT INTO DoctorVisits (Id, UserId, Specialist, VisitType, Diagnosis, Prescription, VisitedAt) VALUES (@Id, @UserId, @Specialist, @VisitType, @Diagnosis, @Prescription, @VisitedAt);";
-        public const string GetDoctorVisits = "SELECT * FROM DoctorVisits WHERE UserId = @UserId ORDER BY VisitedAt DESC;";
-        public const string UpdateUserHealthData = @" UPDATE Users  SET Age = @Age, Gender = @Gender, DateOfBirth = @DateOfBirth, Country = @Country, PhoneNumber = @PhoneNumber WHERE Id = @Id;";
+        // --- NOTES ---
+        public const string GetUserNotes = "SELECT * FROM UserNotes WHERE UserId = @UserId::uuid ORDER BY CreatedAt DESC;";
+        public const string AddUserNote = @"INSERT INTO UserNotes (Id, UserId, CreatedAt, NoteText, NoteTitle) VALUES (@Id::uuid, @UserId::uuid, @CreatedAt, @NoteText, @NoteTitle);";
+        public const string DeleteUserNote = "DELETE FROM UserNotes WHERE Id = @Id::uuid AND UserId = @UserId::uuid;";
         
-        public const string AddHealthMeasurement = "INSERT INTO HealthMeasurements (Id, UserId, MeasuredAt, Systolic, Diastolic, HeartRate) VALUES (@Id, @UserId, @MeasuredAt, @Systolic, @Diastolic, @HeartRate);";
-        public const string GetMeasurements = "SELECT * FROM HealthMeasurements WHERE UserId = @UserId ORDER BY MeasuredAt DESC;";
-        public const string AddAnthropometry = @"INSERT INTO HealthAnthropometry (Id, UserId, MeasuredAt, Weight, Height, Sugar, BloodType, Age) VALUES (@Id, @UserId, @MeasuredAt, @Weight, @Height, @Sugar, @BloodType, @Age);";
-        public const string GetAnthropometries = @"SELECT * FROM HealthAnthropometry WHERE UserId = @UserId ORDER BY MeasuredAt DESC;";
+        // --- DOCTOR VISITS ---
+        public const string AddDoctorVisit = "INSERT INTO DoctorVisits (Id, UserId, Specialist, VisitType, Diagnosis, Prescription, VisitedAt) VALUES (@Id::uuid, @UserId::uuid, @Specialist, @VisitType, @Diagnosis, @Prescription, @VisitedAt);";
+        public const string GetDoctorVisits = "SELECT * FROM DoctorVisits WHERE UserId = @UserId::uuid ORDER BY VisitedAt DESC;";
+        
+        // --- HEALTH MEASUREMENTS ---
+        public const string AddHealthMeasurement = "INSERT INTO HealthMeasurements (Id, UserId, MeasuredAt, Systolic, Diastolic, HeartRate) VALUES (@Id::uuid, @UserId::uuid, @MeasuredAt, @Systolic, @Diastolic, @HeartRate);";
+        public const string GetMeasurements = "SELECT * FROM HealthMeasurements WHERE UserId = @UserId::uuid ORDER BY MeasuredAt DESC;";
+        
+        // --- ANTHROPOMETRY ---
+        public const string AddAnthropometry = @"INSERT INTO HealthAnthropometry (Id, UserId, MeasuredAt, Weight, Height, Sugar, BloodType, Age) VALUES (@Id::uuid, @UserId::uuid, @MeasuredAt, @Weight, @Height, @Sugar, @BloodType, @Age);";
+        public const string GetAnthropometries = @"SELECT * FROM HealthAnthropometry WHERE UserId = @UserId::uuid ORDER BY MeasuredAt DESC;";
        
+        // --- MEDICATIONS (ТУТ БУЛА ПОМИЛКА ПРИ ОТРИМАННІ/ОНОВЛЕННІ) ---
         public const string AddMedication = @"
-    INSERT INTO Medications 
-    (Id, UserId, NameOfMedication, Dose, TimesJson, WeekDaysJson, Type, Duration, StartDate, EndDate, CreatedAt, UpdatedAt) 
-    VALUES 
-    (@Id::uuid, @UserId::uuid, @NameOfMedication, @Dose, @TimesJson, @WeekDaysJson, @Type, @Duration, @StartDate, @EndDate, @CreatedAt, @UpdatedAt);";
-        public const string GetMedications = @"SELECT * FROM Medications WHERE UserId = @UserId ORDER BY CreatedAt DESC;";
-        public const string UpdateMedication = @"UPDATE Medications SET NameOfMedication = @NameOfMedication, Dose = @Dose, TimesJson = @TimesJson, WeekDaysJson = @WeekDaysJson, Type = @Type, Duration = @Duration, StartDate = @StartDate, EndDate = @EndDate, UpdatedAt = @UpdatedAt WHERE Id = @Id AND UserId = @UserId;";
-        public const string DeleteMedication = "DELETE FROM Medications WHERE Id = @Id;";
+            INSERT INTO Medications 
+            (Id, UserId, NameOfMedication, Dose, TimesJson, WeekDaysJson, Type, Duration, StartDate, EndDate, CreatedAt, UpdatedAt) 
+            VALUES 
+            (@Id::uuid, @UserId::uuid, @NameOfMedication, @Dose, @TimesJson, @WeekDaysJson, @Type, @Duration, @StartDate, @EndDate, @CreatedAt, @UpdatedAt);";
+        
+        // 👇 Додано ::uuid до UserId
+        public const string GetMedications = @"SELECT * FROM Medications WHERE UserId = @UserId::uuid ORDER BY CreatedAt DESC;";
+        
+        // 👇 Додано ::uuid до Id та UserId
+        public const string UpdateMedication = @"UPDATE Medications SET NameOfMedication = @NameOfMedication, Dose = @Dose, TimesJson = @TimesJson, WeekDaysJson = @WeekDaysJson, Type = @Type, Duration = @Duration, StartDate = @StartDate, EndDate = @EndDate, UpdatedAt = @UpdatedAt WHERE Id = @Id::uuid AND UserId = @UserId::uuid;";
+        
+        // 👇 Додано ::uuid до Id
+        public const string DeleteMedication = "DELETE FROM Medications WHERE Id = @Id::uuid;";
        
-        public const string AddSleep = @" INSERT INTO Sleep (Id, UserId, Date, StartTime, EndTime, TotalDurationMinutes, SleepScore, SleepStatus) VALUES (@Id, @UserId, @Date, @StartTime, @EndTime, @TotalDurationMinutes, @SleepScore, @SleepStatus);";
-        public const string GetSleepByUserId = @"SELECT * FROM Sleep WHERE UserId = @UserId ORDER BY Date DESC;";
+        // --- SLEEP ---
+        public const string AddSleep = @"INSERT INTO Sleep (Id, UserId, Date, StartTime, EndTime, TotalDurationMinutes, SleepScore, SleepStatus) VALUES (@Id::uuid, @UserId::uuid, @Date, @StartTime, @EndTime, @TotalDurationMinutes, @SleepScore, @SleepStatus);";
+        public const string GetSleepByUserId = @"SELECT * FROM Sleep WHERE UserId = @UserId::uuid ORDER BY Date DESC;";
     }
 }
