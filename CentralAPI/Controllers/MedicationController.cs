@@ -1,141 +1,108 @@
-﻿using System;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Mvc;
 using DataAccess.DataAccess;
 using DataAccess.Models;
-using Microsoft.AspNetCore.Mvc;
 
 namespace WebApplication1.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
+    [ApiController]
     public class MedicationsController : ControllerBase
     {
-        private readonly IDbAccessService _dbService;
-        private readonly ILogger<MedicationsController> _logger;
+        private readonly IDbAccessService _dbAccessService;
 
-        public MedicationsController(IDbAccessService dbService, ILogger<MedicationsController> logger)
+        public MedicationsController(IDbAccessService dbAccessService)
         {
-            _dbService = dbService;
-            _logger = logger;
+            _dbAccessService = dbAccessService;
         }
 
         [HttpPost]
         public async Task<IActionResult> AddMedication([FromBody] Medication medication)
         {
+            if (medication == null)
+            {
+                return BadRequest("Medication data is null");
+            }
+
+            // ВИПРАВЛЕННЯ: Перевіряємо Guid.Empty замість string.IsNullOrEmpty
+            if (medication.UserId == Guid.Empty)
+            {
+                return BadRequest("UserId is required");
+            }
+
             try
             {
-                _logger.LogInformation("Adding new medication: {MedicationName}", medication?.NameOfMedication);
-
-                if (medication == null)
-                    return BadRequest(new { success = false, message = "Medication is required" });
-
-                // Валідація обов'язкових полів
-                if (string.IsNullOrEmpty(medication.UserId))
-                    return BadRequest(new { success = false, message = "UserId is required" });
-
-                if (string.IsNullOrEmpty(medication.NameOfMedication))
-                    return BadRequest(new { success = false, message = "Medication name is required" });
-
-                // Встановлюємо значення за замовчуванням
-                if (medication.StartDate == default)
-                    medication.StartDate = DateTime.Today;
-
-                if (string.IsNullOrEmpty(medication.Duration))
-                    medication.Duration = "1 month";
-
-                var result = await _dbService.AddMedication(medication);
-
-                if (result > 0)
-                {
-                    _logger.LogInformation("Medication added successfully with ID: {MedicationId}", medication.Id);
-                    return Ok(new { success = true, message = "Medication added successfully", data = medication });
-                }
-
-                _logger.LogWarning("Failed to add medication - no rows affected");
-                return BadRequest(new { success = false, message = "Failed to add medication" });
+                await _dbAccessService.AddMedication(medication);
+                return Ok(new { success = true, message = "Medication added successfully", data = medication });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding medication");
                 return StatusCode(500, new { success = false, message = $"Failed to add medication: {ex.Message}" });
+            }
+        }
+
+        // ВИПРАВЛЕННЯ: Приймаємо Guid, а не string
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetMedications(Guid userId)
+        {
+            if (userId == Guid.Empty)
+            {
+                return BadRequest("Invalid User ID");
+            }
+
+            try
+            {
+                // Передаємо Guid напряму в сервіс
+                var medications = await _dbAccessService.GetMedications(userId);
+                return Ok(new { success = true, data = medications });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Error getting medications: {ex.Message}" });
             }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateMedication(Guid id, [FromBody] Medication medication)
         {
+            if (id == Guid.Empty || medication.Id != id)
+            {
+                return BadRequest("Invalid ID");
+            }
+
             try
             {
-                _logger.LogInformation("Updating medication with ID: {MedicationId}", id);
-
-                if (medication == null || id != medication.Id)
-                {
-                    return BadRequest(new { success = false, message = "Invalid medication data" });
-                }
-
-                medication.UpdatedAt = DateTime.UtcNow;
-
-                var result = await _dbService.UpdateMedication(medication);
-
-                if (result > 0)
-                {
-                    _logger.LogInformation("Medication updated successfully");
-                    return Ok(new { success = true, message = "Medication updated successfully", data = medication });
-                }
-
-                _logger.LogWarning("Medication not found or failed to update: {MedicationId}", id);
-                return NotFound(new { success = false, message = "Medication not found or failed to update" });
+                await _dbAccessService.UpdateMedication(medication);
+                return Ok(new { success = true, message = "Medication updated successfully", data = medication });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating medication {MedicationId}", id);
                 return StatusCode(500, new { success = false, message = $"Failed to update medication: {ex.Message}" });
-            }
-        }
-        
-        [HttpGet("{userId}")]
-        public async Task<IActionResult> GetMedications(Guid userId)
-        {
-            try
-            {
-                _logger.LogInformation("Getting medications for user: {UserId}", userId);
-                
-                var medications = await _dbService.GetMedications(userId);
-                
-                _logger.LogInformation("Returning {Count} medications for user {UserId}", medications.Count, userId);
-                
-                return Ok(new { success = true, data = medications });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting medications for user {UserId}", userId);
-                return StatusCode(500, new { success = false, message = $"Failed to get medications: {ex.Message}" });
             }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMedication(Guid id)
         {
+            if (id == Guid.Empty)
+            {
+                return BadRequest("Invalid ID");
+            }
+
             try
             {
-                _logger.LogInformation("Deleting medication with ID: {MedicationId}", id);
-                
-                var result = await _dbService.DeleteMedication(id);
-                
-                if (result) 
+                var result = await _dbAccessService.DeleteMedication(id);
+                if (result)
                 {
-                    _logger.LogInformation("Medication deleted successfully");
                     return Ok(new { success = true, message = "Medication deleted successfully" });
                 }
-                
-                _logger.LogWarning("Medication not found: {MedicationId}", id);
-                return NotFound(new { success = false, message = "Medication not found" });
+                else
+                {
+                    return NotFound(new { success = false, message = "Medication not found" });
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting medication {MedicationId}", id);
-                return StatusCode(500, new { success = false, message = $"Failed to delete medication: {ex.Message}" });
+                return StatusCode(500, new { success = false, message = $"Error deleting medication: {ex.Message}" });
             }
         }
     }
